@@ -88,7 +88,7 @@ const bridges = await Discovery.discoverBridges();
 const bridge = await crownstoneHue.addBridge(bridges[0]);
 const lights = await bridge.getAllLightsFromBridge();
 const light = await crownstoneHue.addLight(lights[0]);
-await brige.startPolling(); // Not mandatory.
+await brige.startPolling();
 
 ```
  

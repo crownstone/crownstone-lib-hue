@@ -1,7 +1,3 @@
-import {
-    LIGHT_POLLING_RATE
-} from "../constants/HueConstants";
-import Timeout = NodeJS.Timeout;
 import {lightUtil} from "../util/LightUtil";
 import {GenericUtil} from "../util/GenericUtil";
 import {eventBus} from "../util/EventBus";
@@ -37,10 +33,8 @@ export class Light {
     supportedStates: string[];
     api: ((action, extra?) => {});
     lastUpdate: number;
-    intervalId: Timeout;
     stateUpdateCallback = ((state) => {
     });
-    initialized: boolean = false;
 
 
     constructor(data: LightInitialization) {
@@ -55,12 +49,14 @@ export class Light {
         this.lastUpdate = Date.now();
     }
 
-    init(): void {
-        if (this.initialized) { return; }
-        this.initialized = true
-        this.intervalId = setInterval(async () => await this.renewState(), LIGHT_POLLING_RATE);
+    update(data):void{
+        if("name" in data && data.name !== this.name){
+            this.name = data.name;
+        }
+        if("state" in data){
+            this._checkState(data.state);
+        }
     }
-
 
     /** Sets a Callback to pass new state info on a update
      *
@@ -73,14 +69,11 @@ export class Light {
         this.lastUpdate = Date.now();
     }
 
-    cleanup():void {
-        clearInterval(this.intervalId);
-    }
 
-    /**
-     * Obtains the state from the light on the bridge and updates the state object if different.
+    /** Call to manually renew state from Bridge.
+     *
      */
-    async renewState(): Promise<void> {
+    async renewState(){
         let newState = await this.api("getLightState", this.id) as FailedConnection | HueFullState;
         if(!newState){
             throw new CrownstoneHueError(424,"Getting a light's state gone wrong.")
@@ -88,7 +81,12 @@ export class Light {
         if ("hadConnectionFailure" in newState && newState.hadConnectionFailure) {
             return;
         }
-        newState = newState as HueFullState;
+        this._checkState(newState as HueFullState);
+    }
+    /**
+     * Checks given state and updates the state object if different.
+     */
+    _checkState(newState:HueFullState): void {
         if (newState && !lightUtil.stateEqual(this.state, newState)) {
             this.state = <HueFullState>GenericUtil.deepCopy(newState);
             this._setLastUpdate();

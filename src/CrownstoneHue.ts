@@ -43,7 +43,7 @@ export class CrownstoneHue {
   removeBridge(bridgeId: string): void {
     for (let i = 0; i < this.bridges.length; i++) {
       if (this.bridges[i].bridgeId === bridgeId) {
-        this.bridges[i].cleanup();
+        this.bridges[i].stopPolling();
         this.bridges.splice(i, 1);
         break;
       }
@@ -100,7 +100,7 @@ export class CrownstoneHue {
 
   stop(): void {
     for (const bridge of this.bridges) {
-      bridge.cleanup()
+      bridge.stopPolling()
     }
   }
 }

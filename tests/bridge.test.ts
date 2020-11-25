@@ -204,6 +204,31 @@ describe("Bridge", () => {
       expect(e.description).toBe("ABCD123");
     }
   })
+
+  test("Polling", async () => {
+    jest.useFakeTimers();
+    const bridge = new Bridge({
+      name: "Philips Hue Fake Bridge",
+      username: "FakeUsername",
+      clientKey: "FakeKey",
+      macAddress: "AB:DC:FA:KE:91",
+      ipAddress: "192.168.178.10",
+      bridgeId: "ABDCFFFEAKE91"
+    })
+    bridge._pollingEvent = jest.fn()
+    await bridge.init();
+    bridge.startPolling()
+    jest.advanceTimersToNextTimer();
+    expect(bridge._pollingEvent).toBeCalledTimes(1);
+    bridge.stopPolling()
+    jest.advanceTimersToNextTimer();
+    expect(bridge._pollingEvent).toBeCalledTimes(1);
+    bridge.startPolling()
+    jest.advanceTimersToNextTimer();
+    expect(bridge._pollingEvent).toBeCalledTimes(2)
+    bridge.stopPolling()
+    return;
+  })
 })
 
 

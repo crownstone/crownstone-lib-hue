@@ -17,20 +17,7 @@ const mockApi = ((value,extra?) => {
 })
 
 describe('Light', () => {
-  test('Init', () => {
-    jest.useFakeTimers();
-    const light = new Light({name:"Fake light", uniqueId:"1234ABCD", state:{
-        on: false,
-        reachable: false
-      }, id:0, bridgeId:"aaccdffee22f", capabilities:{}, supportedStates:[], api:mockApi})
-    light.renewState = jest.fn();
-    light.init();
-    jest.advanceTimersByTime(500);
-    expect(light.renewState).toBeCalledTimes(1);
-    light.cleanup();
-    return;
-  })
-  test('Renew state, new state', async () => {
+   test('Renew state, new state', async () => {
     const light = new Light({name:"Fake light", uniqueId:"1234ABCD", state:{
         "on": true,
         "bri": 140,

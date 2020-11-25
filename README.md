@@ -45,7 +45,7 @@ Note that, if username is not provided while adding the bridge, the user needs t
 
 In case you have no bridge information, use:
 ``
-const bridges = Discovery.discoverBridges();
+const bridges = await Discovery.discoverBridges();
 ``
 This will return a list of bridges that are connected in your network.
 
@@ -69,24 +69,26 @@ const light = await bridge.configureLight(lights[0]);
 ... or ...
 const light = await crownstoneHue.addLight(lights[0]);
 ```
-This returns a usable light once again, with an uninitialized polling interval.
-To initialize the light's polling, call:
+This returns a usable light once again,
+To initialize the bridge's polling, call:
 ```
-await light.init();
+await bridge.startPolling();
 ```
-This will poll the light every 500ms, checking for a state change.
+This will poll the Hue bridge for all light info every 500ms and sends it to the lights.
 Upon state change it sends a callback, which is set by calling: ``light.setStateUpdateCallback(callback)``.
+
+When the Bridge detects a new light that is added to the actual Hue bridge, it will emit an event called: `newLightOnBridge` with a stringified payload   `{uniqueId:string,id:number,name:string,bridgeId:string}`.
 
 For more information, see [CrownstoneHue](/documentation/CrownstoneHue.md) and [Bridge](/documentation/Bridge.md)
 
 All together:
 ```
 const crownstoneHue = new CrownstoneHue()   
-const bridges = Discovery.discoverBridges();
-await crownstoneHue.addBridge(bridges[0]);
+const bridges = await Discovery.discoverBridges();
+const bridge = await crownstoneHue.addBridge(bridges[0]);
 const lights = await bridge.getAllLightsFromBridge();
 const light = await crownstoneHue.addLight(lights[0]);
-await light.init(); // Not mandatory.
+await brige.startPolling(); // Not mandatory.
 
 ```
  

@@ -1,16 +1,18 @@
 import {Light} from "./Light"
 import {v3} from "node-hue-api";
 import {CrownstoneHueError} from "..";
-import {APP_NAME, DEVICE_NAME, RECONNECTION_TIMEOUT_TIME} from "../constants/HueConstants"  //Device naming for on the Hue Bridge.
+import {APP_NAME, DEVICE_NAME, LIGHT_POLLING_RATE, RECONNECTION_TIMEOUT_TIME} from "../constants/HueConstants"  //Device naming for on the Hue Bridge.
 import {Discovery} from "./Discovery";
 import {GenericUtil} from "../util/GenericUtil";
 import Api from "node-hue-api/lib/api/Api"; // library import only used for types
 import {eventBus} from "../util/EventBus";
 import {
+  NEW_LIGHT_ON_BRIDGE,
   ON_BRIDGE_CONNECTION_LOST,
   ON_BRIDGE_CONNECTION_REESTABLISHED,
   ON_BRIDGE_PERSISTENCE_UPDATE
 } from "../constants/EventConstants";
+import Timeout = NodeJS.Timeout;
 
 const hueApi = v3.api;
 
@@ -44,6 +46,7 @@ const neededForReconnection = {...exemptOfAuthentication}
  */
 export class Bridge {
   lights: {[uniqueId :string]:Light} = {};
+  _lightsConnected: {[uniqueId :string]: { name: string, id: number }} = {} // Array of all Lights connected to the bridge;
   api: Api;
   authenticated: boolean = false;
   name: string | null;
@@ -55,6 +58,8 @@ export class Bridge {
   reachable: boolean = false;
   reconnecting: boolean = false;
   initialized: boolean = false;
+  intervalId: Timeout;
+  isPolling: boolean = false;
 
   constructor(data: BridgeInitialization) {
     this.name = data.name || null;
@@ -187,8 +192,8 @@ export class Bridge {
         throw new CrownstoneHueError(412,uniqueId);
       }
       if(!lightData.hadConnectionFailure){
-        for(const data of lightData){
-          if(data.uniqueid === uniqueId){
+        for(const data of lightData) {
+          if (data.uniqueid === uniqueId) {
             const light = this._createLight(data);
             this.lights[data.uniqueId] = light;
             return light;
@@ -218,8 +223,6 @@ export class Bridge {
 
 
   removeLight(uniqueLightId: string): void {
-    if (this.lights[uniqueLightId] != undefined)
-      this.lights[uniqueLightId].cleanup();
     delete this.lights[uniqueLightId];
   }
 
@@ -231,17 +234,21 @@ export class Bridge {
   }
 
   async updateBridgeInfo() {
-    const bridgeConfig = await this._useApi("getBridgeConfiguration");
+    const bridgeConfig = await this._useApi("getFullBridgeInfo");
     if(!bridgeConfig){
       throw new CrownstoneHueError(424,"Obtaining bridge configuration gone wrong.")
     }
     if (bridgeConfig.hadConnectionFailure) {
       return;
     }
+    for(const lightId of Object.keys(bridgeConfig.lights)){
+      this._lightsConnected[bridgeConfig.lights[lightId].uniqueid] = {name:bridgeConfig.lights[lightId].name, id:bridgeConfig.lights[lightId].id };
+    }
+
     await this.update({
-      "bridgeId": bridgeConfig.bridgeid,
-      "name": bridgeConfig.name,
-      "macAddress": bridgeConfig.mac,
+      "bridgeId": bridgeConfig.config.bridgeid,
+      "name": bridgeConfig.config.name,
+      "macAddress": bridgeConfig.config.mac,
       "reachable": true
     })
   }
@@ -308,11 +315,7 @@ export class Bridge {
     this.reachable = true;
     this.authenticated = false;
   }
-  _onUndefined(result){
-    if(result === undefined){
-      throw new CrownstoneHueError(999,"Result is undefined.");
-    }
-  }
+
 
   /**
    * Creates a user on the Bridge.
@@ -336,9 +339,8 @@ export class Bridge {
 
   /**
    * Retrieves all lights from the bridge and adds them to lights list.
-   * Does not save the lights into the config.
    */
-  async populateLights(): Promise<void> {
+  async populateLights(): Promise<{[uniqueId :string]:Light}> {
     let lights = await this._useApi("getAllLights");
     if (lights.hadConnectionFailure) {
       if (!this.reconnecting) {
@@ -347,6 +349,7 @@ export class Bridge {
       return;
     }
     lights.forEach(light => {
+      if(this.lights[light.uniqueid]){return;}
       this.lights[light.uniqueid] = new Light({
         name: light.name,
         uniqueId: light.uniqueid,
@@ -358,6 +361,8 @@ export class Bridge {
         api: this._useApi.bind(this)
       })
     });
+
+    return this.lights;
   }
 
 
@@ -384,6 +389,8 @@ export class Bridge {
           return await this.api.lights.setLightState(extra[0], extra[1]);
         case "getLightState":
           return await this.api.lights.getLightState(extra);
+        case "getFullBridgeInfo":
+          return await this.api.configuration.getAll();
         case "createAuthenticatedApi":
           return await hueApi.createLocal(this.ipAddress).connect(this.username) as Api;
         case "createUnauthenticatedApi":
@@ -479,10 +486,43 @@ export class Bridge {
     return this.lights[uniqueId];
   }
 
-  cleanup(): void {
-    Object.values(this.lights).forEach(light => {
-      light.cleanup();
-    })
+  startPolling(){
+    if(this.isPolling){return;}
+    this._checkAuthentication();
+    this.isPolling = true;
+    this.intervalId = setInterval(async () => await this._pollingEvent(), LIGHT_POLLING_RATE);
+  }
+  stopPolling(): void {
+    clearInterval(this.intervalId);
+    this.isPolling = false;
+  }
+
+  async _pollingEvent():Promise<void>{
+    const lights = await this._useApi("getAllLights");
+    for(const light of lights){
+      this._checkIfNewLight(light);
+      this._sendInfoToLight(light);
+    }
+  }
+
+  _checkIfNewLight(light){
+    if(this._lightsConnected[light.uniqueid]){
+      if(this._lightsConnected[light.uniqueid].id !== light.id){
+        this._lightsConnected[light.uniqueid].id = light.id;
+      }
+      if(this._lightsConnected[light.uniqueid].name !== light.name){
+        this._lightsConnected[light.uniqueid].name = light.name;
+      }
+    } else if(!this._lightsConnected[light.uniqueid]){
+        eventBus.emit(NEW_LIGHT_ON_BRIDGE, JSON.stringify({name:light.name,uniqueId:light.uniqueid,id:light.id,bridgeId:this.bridgeId}))
+      this._lightsConnected[light.uniqueid] = {name:light.name, id:light.id };
+    }
+  }
+
+  _sendInfoToLight(lightInfo):void{
+    if(this.lights[lightInfo.uniqueid]){
+      this.lights[lightInfo.uniqueid].update(lightInfo);
+    }
   }
 
   update(values: object, onlyUpdate: boolean = false): void {

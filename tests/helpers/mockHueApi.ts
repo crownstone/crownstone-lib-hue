@@ -5,6 +5,7 @@ export const fakeBridge = {
   mac: "AB:DC:FA:KE:91",
   ipaddress: "192.168.178.10"
 }
+
 export const fakeLightsOnBridge = [{
   name: "Light 1",
   uniqueid: "ABCD123",
@@ -38,6 +39,13 @@ export const fakeLightsOnBridge = [{
     return {}
   })
 }]
+
+const fakeConfig = {
+  lights:{ "0": fakeLightsOnBridge[0],
+    "1": fakeLightsOnBridge[1]
+  },
+  config: fakeBridge
+}
 
 export const fakeCreateLocal = ((ipaddress) => {
   if (ipaddress === fakeBridge.ipaddress) {
@@ -79,6 +87,9 @@ export const fakeHueApi = {
   configuration: {
     getConfiguration: (() => {
       return fakeBridge;
+    }),
+    getAll: (() =>{
+    return fakeConfig;
     })
   },
   lights: fakeApiLights

@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2018",
+    "outDir": "./dist",
+    "resolveJsonModule": true
+  },
+  "references": [
+    {
+      "path": "../"
+    }
+  ],
+  "include": [
+    "../src/**/*",
+    "./**/*.ts"
+  ]
+} 

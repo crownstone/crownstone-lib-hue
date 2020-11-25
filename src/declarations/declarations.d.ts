@@ -99,6 +99,19 @@ interface LightInitialization {
   api: any
 }
 
+interface LightCreation{
+  name: string,
+  uniqueid: string,
+  state: HueFullState,
+  id: number,
+  bridgeId: string,
+  capabilities: { control: object },
+  getSupportedStates(): string[];
+  api: any
+
+}
+
+
 interface LightConfig {
   uniqueId: string;
   id: number;
@@ -107,3 +120,12 @@ interface LightConfig {
 interface LightInitFormat extends LightConfig {
   bridgeId: string;
 }
+
+interface LightCheckFormat{
+  uniqueid: string,
+  id: number,
+  name: string
+}
+
+
+interface connectedLightsOnBridge { [uniqueId: string]: { name: string, id: number } }

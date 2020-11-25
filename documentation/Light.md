@@ -4,8 +4,7 @@
  - [Discovery](/documentation/Discovery.md)
  - [Bridge](/documentation/Bridge.md)
  - **Light** 
-   - [Constructing](#constructing)
-   - [Initialization](#initialization)
+   - [Constructing](#constructing) 
    - [Polling/Renew state](#pollingrenew-state)
    - [Setting the callback for a lightstate change](#settings-the-callback-for-a-lightstate-change)
    - [Setting a new light state](#setting-a-new-light-state)
@@ -55,22 +54,15 @@ new Light({
         api: this._useApi.bind(this)
       })
 ```
-### Initialization
-To initialize a light, call:
-
-`light.init()`
-
-This will start the polling of the light every 500ms, checking if the light's state has changed.
-The polling rate is defined in [HueConstants.ts](/src/constants/HueConstants.ts) as `LIGHT_POLLING_RATE`
-
+ 
 ### Polling/Renew state
-To renew the light's state, call:
+The polling of a light is done by the Bridge and passes information to the Light object.
+
+If the polling of a Bridge is not activated, you can manually poll a single light, by calling:
 
 `await light.renewState()` 
 
-This is automatically done every 500ms when the light object is initialized.
-
-It obtains the latest lightstate of the actual Philips Hue Light and when there is a state difference, the new state will be passed with the defined callback. The data passed is of type `HueFullState`.
+In both instances it uses the latest lightstate of the actual Philips Hue Light and when there is a state difference, the new state will be passed with the defined callback. The data passed is of type `HueFullState`.
 
 If the light's state didn't change but its reachability is changed, it will send out an event with topic `onLightReachabilityChange` with a stringified object as `{uniqueId:string,reachable:boolean}`.
 
@@ -128,13 +120,7 @@ This will return the state as a HueFullLightState object as format:
   ```
 Depending on the type of light, the fields can vary because a multiple colour light has more options than a single colour light.
 
-
-### Cleanup
-To stop the interval, call:
-
-`light.cleanup()`
-Which will stop the polling.
-
+ 
 
 ### Getters
 `isReachable():boolean` - Returns if the light is reachable or not. (Might have a slight delay as it depends on actual Bridge providing this data after a poll) 

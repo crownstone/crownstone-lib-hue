@@ -31,7 +31,8 @@ const neededForReconnection = {...exemptOfAuthentication}
  * init() should be called before using this object.
  * Uses eventbus topic "onBridgeUpdate" to pass new data.
  *
- * @param lights - Key/Value List of Light objects, Where key is the uniqueId of a list and value the Light object itself
+ * @param lights - Key/Value List of Light objects, Where key is the uniqueId of a list and value the Light object itself for all the lights that are configured with the Bridge object.
+ * @param _lightsConnected - Key/Value List for all the lights that are connected to the actual Hue Bridge
  * @param api - An Api from the Hue Library that is used to connect to the Bridge itself. Empty before init.
  * @param name - Name of the Bridge.
  * @param username - The username that is whitelisted on the Hue Bridge. Should be empty if not Bridge isn't linked. May be empty on construct.
@@ -45,8 +46,8 @@ const neededForReconnection = {...exemptOfAuthentication}
  *
  */
 export class Bridge {
-  lights: {[uniqueId :string]:Light} = {};
-  _lightsConnected: {[uniqueId :string]: { name: string, id: number }} = {} // Array of all Lights connected to the bridge;
+  lights: { [uniqueId: string]: Light } = {};
+  _lightsConnected:connectedLightsOnBridge = {} // Array of all Lights connected to the bridge;
   api: Api;
   authenticated: boolean = false;
   name: string | null;
@@ -141,7 +142,7 @@ export class Bridge {
     if (this.lights[data.uniqueId]) {
       throw new CrownstoneHueError(409, data.uniqueId)
     }
-    if("name" in data){
+    if ("name" in data) {
       this.lights[data.uniqueId] = data;
       return data;
     }
@@ -189,10 +190,10 @@ export class Bridge {
     while (attemptToGetLightInfo) {
       const lightData = await this._useApi("getAllLights");
       if (!lightData) {
-        throw new CrownstoneHueError(412,uniqueId);
+        throw new CrownstoneHueError(412, uniqueId);
       }
-      if(!lightData.hadConnectionFailure){
-        for(const data of lightData) {
+      if (!lightData.hadConnectionFailure) {
+        for (const data of lightData) {
           if (data.uniqueid === uniqueId) {
             const light = this._createLight(data);
             this.lights[data.uniqueId] = light;
@@ -205,7 +206,7 @@ export class Bridge {
     }
   }
 
-  _createLight(data):Light{
+  _createLight(data:LightCreation): Light {
     const light = new Light({
       name: data.name,
       uniqueId: data.uniqueid,
@@ -221,7 +222,6 @@ export class Bridge {
   }
 
 
-
   removeLight(uniqueLightId: string): void {
     delete this.lights[uniqueLightId];
   }
@@ -229,20 +229,33 @@ export class Bridge {
   /** Retrieves all the lights that are connected through the module.
    *
    */
-  getConnectedLights(): { [uniqueId: string]:Light} {
+  getConnectedLights(): { [uniqueId: string]: Light } {
     return this.lights;
   }
 
-  async updateBridgeInfo() {
+  async updateBridgeInfo():Promise<void> {
     const bridgeConfig = await this._useApi("getFullBridgeInfo");
-    if(!bridgeConfig){
-      throw new CrownstoneHueError(424,"Obtaining bridge configuration gone wrong.")
+    if (!bridgeConfig) {
+      throw new CrownstoneHueError(424, "Obtaining bridge configuration gone wrong.")
     }
     if (bridgeConfig.hadConnectionFailure) {
       return;
     }
-    for(const lightId of Object.keys(bridgeConfig.lights)){
-      this._lightsConnected[bridgeConfig.lights[lightId].uniqueid] = {name:bridgeConfig.lights[lightId].name, id:bridgeConfig.lights[lightId].id };
+    for (const lightId of Object.keys(bridgeConfig.lights)) {
+      if (this.initialized) {
+        this._lightsConnected[bridgeConfig.lights[lightId].uniqueid] = {
+          name: bridgeConfig.lights[lightId].name,
+          id: bridgeConfig.lights[lightId].id
+        };
+      }
+      else {
+        const lightInfo = bridgeConfig.lights[lightId]
+        this._checkIfNewLight({
+          uniqueid: lightInfo.uniqueid,
+          name: lightInfo.name,
+          id: Number.parseInt(lightId)
+        })
+      }
     }
 
     await this.update({
@@ -258,8 +271,8 @@ export class Bridge {
    */
   async getAllLightsFromBridge(): Promise<{ [uniqueId: string]: Light }> {
     const lights = await this._useApi("getAllLights");
-    if(!lights){
-      throw new CrownstoneHueError(424,"Obtaining all lights gone wrong.")
+    if (!lights) {
+      throw new CrownstoneHueError(424, "Obtaining all lights gone wrong.")
     }
     if (lights.hadConnectionFailure) {
       return {}
@@ -287,8 +300,8 @@ export class Bridge {
    */
   async _createAuthenticatedApi(): Promise<void> {
     const result = await this._useApi("createAuthenticatedApi");
-    if(!result){
-      throw new CrownstoneHueError(424,"Creating an authenticated Api gone wrong.")
+    if (!result) {
+      throw new CrownstoneHueError(424, "Creating an authenticated Api gone wrong.")
     }
     if (result.hadConnectionFailure) {
       return;
@@ -305,8 +318,8 @@ export class Bridge {
    */
   async _createUnAuthenticatedApi(): Promise<void> {
     const result = await this._useApi("createUnauthenticatedApi");
-    if(!result){
-      throw new CrownstoneHueError(424,"Creating an unauthenticated Api gone wrong.")
+    if (!result) {
+      throw new CrownstoneHueError(424, "Creating an unauthenticated Api gone wrong.")
     }
     if (result.hadConnectionFailure) {
       return;
@@ -340,7 +353,7 @@ export class Bridge {
   /**
    * Retrieves all lights from the bridge and adds them to lights list.
    */
-  async populateLights(): Promise<{[uniqueId :string]:Light}> {
+  async populateLights(): Promise<{ [uniqueId: string]: Light }> {
     let lights = await this._useApi("getAllLights");
     if (lights.hadConnectionFailure) {
       if (!this.reconnecting) {
@@ -349,7 +362,9 @@ export class Bridge {
       return;
     }
     lights.forEach(light => {
-      if(this.lights[light.uniqueid]){return;}
+      if (this.lights[light.uniqueid]) {
+        return;
+      }
       this.lights[light.uniqueid] = new Light({
         name: light.name,
         uniqueId: light.uniqueid,
@@ -419,14 +434,14 @@ export class Bridge {
    */
   async _attemptReconnection(): Promise<FailedConnection> {
     if (!this.reconnecting) {
-      eventBus.emit(ON_BRIDGE_CONNECTION_LOST,this.bridgeId)
+      eventBus.emit(ON_BRIDGE_CONNECTION_LOST, this.bridgeId)
       this.reconnecting = true;
       while (this.reconnecting) {
         try {
           this.reachable = false;
           await this._rediscoverMyself();
           this.reconnecting = false;
-          eventBus.emit(ON_BRIDGE_CONNECTION_REESTABLISHED,this.bridgeId)
+          eventBus.emit(ON_BRIDGE_CONNECTION_REESTABLISHED, this.bridgeId)
         }
         catch (err) {
           if (GenericUtil.isConnectionError(err)) {
@@ -486,73 +501,82 @@ export class Bridge {
     return this.lights[uniqueId];
   }
 
-  startPolling(){
-    if(this.isPolling){return;}
+  startPolling(): void {
+    if (this.isPolling) {
+      return;
+    }
     this._checkAuthentication();
     this.isPolling = true;
     this.intervalId = setInterval(async () => await this._pollingEvent(), LIGHT_POLLING_RATE);
   }
+
   stopPolling(): void {
     clearInterval(this.intervalId);
     this.isPolling = false;
   }
 
-  async _pollingEvent():Promise<void>{
+  async _pollingEvent(): Promise<void> {
     const lights = await this._useApi("getAllLights");
-    for(const light of lights){
+    for (const light of lights) {
       this._checkIfNewLight(light);
       this._sendInfoToLight(light);
     }
   }
 
-  _checkIfNewLight(light){
-    if(this._lightsConnected[light.uniqueid]){
-      if(this._lightsConnected[light.uniqueid].id !== light.id){
+  _checkIfNewLight(light:LightCheckFormat): void {
+    if (this._lightsConnected[light.uniqueid]) {
+      if (this._lightsConnected[light.uniqueid].id !== light.id) {
         this._lightsConnected[light.uniqueid].id = light.id;
       }
-      if(this._lightsConnected[light.uniqueid].name !== light.name){
+      if (this._lightsConnected[light.uniqueid].name !== light.name) {
         this._lightsConnected[light.uniqueid].name = light.name;
       }
-    } else if(!this._lightsConnected[light.uniqueid]){
-        eventBus.emit(NEW_LIGHT_ON_BRIDGE, JSON.stringify({name:light.name,uniqueId:light.uniqueid,id:light.id,bridgeId:this.bridgeId}))
-      this._lightsConnected[light.uniqueid] = {name:light.name, id:light.id };
+    }
+    else if (!this._lightsConnected[light.uniqueid]) {
+      eventBus.emit(NEW_LIGHT_ON_BRIDGE, JSON.stringify({
+        name: light.name,
+        uniqueId: light.uniqueid,
+        id: light.id,
+        bridgeId: this.bridgeId
+      }))
+      this._lightsConnected[light.uniqueid] = {name: light.name, id: light.id};
     }
   }
 
-  _sendInfoToLight(lightInfo):void{
-    if(this.lights[lightInfo.uniqueid]){
+  _sendInfoToLight(lightInfo): void {
+    if (this.lights[lightInfo.uniqueid]) {
       this.lights[lightInfo.uniqueid].update(lightInfo);
     }
   }
 
   update(values: object, onlyUpdate: boolean = false): void {
     let saveValue = false;
-    if (values["name"] !== undefined &&  this.name !== values["name"]) {
+    if (values["name"] !== undefined && this.name !== values["name"]) {
       this.name = values["name"]
       saveValue = true;
     }
-    if (values["ipAddress"] !== undefined &&  this.ipAddress !== values["ipAddress"]) {
+    if (values["ipAddress"] !== undefined && this.ipAddress !== values["ipAddress"]) {
       this.ipAddress = values["ipAddress"]
       saveValue = true;
     }
-    if (values["username"] !== undefined &&  this.username !== values["username"]) {
+    if (values["username"] !== undefined && this.username !== values["username"]) {
       this.username = values["username"]
       saveValue = true;
     }
-    if (values["clientKey"] !== undefined &&  this.clientKey !== values["clientKey"]) {
+    if (values["clientKey"] !== undefined && this.clientKey !== values["clientKey"]) {
       this.clientKey = values["clientKey"]
       saveValue = true;
     }
-    if (values["macAddress"] !== undefined &&  this.macAddress !== values["macAddress"]) {
+    if (values["macAddress"] !== undefined && this.macAddress !== values["macAddress"]) {
       this.macAddress = values["macAddress"]
       saveValue = true;
     }
-    if (values["bridgeId"] !== undefined &&  this.bridgeId !== values["bridgeId"]) {
+    if (values["bridgeId"] !== undefined && this.bridgeId !== values["bridgeId"]) {
       this.bridgeId = values["bridgeId"]
       saveValue = true;
     }
 
-    if (values["reachable"] !== undefined ) {
+    if (values["reachable"] !== undefined) {
       this.reachable = values["reachable"]
     }
     if (values["authenticated"] !== undefined) {

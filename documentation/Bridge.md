@@ -12,6 +12,7 @@
     - [Connecting](#connecting)
   - [Light configuration](#light-configuration)
   - [Removing a light](#removing-a-light)
+  - [Polling](#Polling)
   - [Update](#update)
   - [Save](#save)
   - [On connection failure](#on-connection-failure)
@@ -91,6 +92,21 @@ On success, it will return an uninitialized Light object.
 In case of a wrong id or the uniqueId doesn't match the id used, it attempts to find by uniqueId.
 When light is not found it throws an error. 
 If the bridge has connection issues, it attempts to redo this operation every 10 seconds.
+
+### Polling
+To obtain the newest state info for the lights, you'll have to poll the Philips Hue Bridge.
+To do this, call:
+```
+bridge.startPolling();
+```
+Every 500ms a request gets send to the Philips Hue Bridge, this will return the latest light info and passes the data to its respective lights.
+If a new light is found on the Philips Hue Bridge, an event named `"newLightOnBridge"` is emitted with a stringified data object: `{uniqueId: string, id: number, name:string,bridgeId: string}` 
+
+To stop the polling, call:
+
+```
+bridge.stopPolling();
+```
 
 ### Removing a light
 
@@ -183,9 +199,7 @@ lights: Light[]
 ```
 
 ### Remaining functions
-`updateBridgeInfo()` - Updates the bridge info with the new info from the Philips Hue Bridge. (Most likely name, unless macAddress and/or bridgeId are missing as well);
-
-`cleanup():void` Calls the cleanup function of every configured light.
+`updateBridgeInfo()` - Updates the bridge info with the new info from the Philips Hue Bridge. (Most likely name and new lights, unless macAddress and/or bridgeId are missing as well);
 
 `getAllLightsFromBridge():Promise<Light[]>` Returns an array with all Light objects that are retrieved from the actual Philips Hue Bridge, corresponding all Hue Lights connected to the Philips Hue Bridge. These Light objects aren't initialized.
 

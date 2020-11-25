@@ -77,8 +77,6 @@ await bridge.startPolling();
 This will poll the Hue bridge for all light info every 500ms and sends it to the lights.
 Upon state change it sends a callback, which is set by calling: ``light.setStateUpdateCallback(callback)``.
 
-When the Bridge detects a new light that is added to the actual Hue bridge, it will emit an event called: `newLightOnBridge` with a stringified payload   `{uniqueId:string,id:number,name:string,bridgeId:string}`.
-
 For more information, see [CrownstoneHue](/documentation/CrownstoneHue.md) and [Bridge](/documentation/Bridge.md)
 
 All together:

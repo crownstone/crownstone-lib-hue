@@ -2,10 +2,12 @@
  * @jest-environment node
  */
 
-import {CrownstoneHue, CrownstoneHueError, Discovery} from "../src";
+import {CrownstoneHue, CrownstoneHueError, Discovery, eventBus} from "../src";
 import {v3} from "node-hue-api"
 import {Bridge} from "../src";
-import {fakeCreateLocal} from "./helpers/mockHueApi";
+import {fakeCreateLocal, fakeLightsOnBridge} from "./helpers/mockHueApi";
+import {NEW_LIGHT_ON_BRIDGE, ON_BRIDGE_PERSISTENCE_UPDATE} from "../src/constants/EventConstants";
+const flushPromises = () => new Promise(setImmediate);
 
 afterEach(() => {
   jest.clearAllMocks()
@@ -229,6 +231,55 @@ describe("Bridge", () => {
     bridge.stopPolling()
     return;
   })
+
+  test("On new light added to Hue Bridge", async () => {
+    jest.useFakeTimers();
+    const bridge = new Bridge({
+      name: "Philips Hue Fake Bridge",
+      username: "FakeUsername",
+      clientKey: "FakeKey",
+      macAddress: "AB:DC:FA:KE:91",
+      ipAddress: "192.168.178.10",
+      bridgeId: "ABDCFFFEAKE91"
+    })
+    await bridge.init();
+    fakeLightsOnBridge.push({
+      name: "Light 3",
+      uniqueid: "QWERTY0987",
+      state: {
+        "on": true,
+        "bri": 250,
+        "alert": "select",
+        "mode": "homeautomation",
+        "reachable": true
+      },
+      id: 2,
+      bridgeId: "ABDCFFFEAKE91",
+      capabilities: {control: {}},
+      getSupportedStates: (() => {
+        return {}
+      })
+    })
+    expect(bridge._lightsConnected).toStrictEqual(    {
+        ABCD123: { name: 'Light 1', id: 0 },
+        XYZ0987: { name: 'Light 2', id: 1 }
+      }
+    )
+    bridge.startPolling()
+    await jest.advanceTimersToNextTimer();
+    await flushPromises();
+    expect(bridge._lightsConnected).toStrictEqual(    {
+        ABCD123: { name: 'Light 1', id: 0 },
+        XYZ0987: { name: 'Light 2', id: 1 },
+        QWERTY0987: { name: 'Light 3', id: 2 }
+      }
+    )
+    bridge.stopPolling()
+    return;
+  })
+
+
+
 })
 
 

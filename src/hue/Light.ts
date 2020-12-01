@@ -122,7 +122,7 @@ export class Light {
      */
     async setState(state: StateUpdate): Promise<boolean> {
         state = lightUtil.manipulateMinMaxValueStates(state);
-        const result = await this.api("setLightState", [this.id.toString(), state]) as FailedConnection | boolean;
+        const result = await this.api("setLightState", [this.id.toString(),state]) as FailedConnection | boolean;
 
         if(!result){
             throw new CrownstoneHueError(424,"Setting the state of light " + this.name + " gone wrong.")
@@ -130,7 +130,6 @@ export class Light {
         if (typeof(result) !== "boolean" && result.hadConnectionFailure) {
             return false;
         }
-        console.log("SET STATE RESULT " + result)
         if (result === true) {
             this._updateState(state);
             return result;
@@ -139,6 +138,21 @@ export class Light {
         return false;
 
     }
+    //
+    // _createState(state:StateUpdate):StateUpdate{
+    //     let newState = {}
+    //     for(const key of Object.keys(state)){
+    //         if(this.state[key] && state[key] !== this.state[key]){
+    //             if(this.state[key][0] !== state[key][0] || this.state[key][1] !== state[key][1])
+    //                newState[key] = [state[key][0], state[key][1]]
+    //             } else {
+    //                 newState[key] = state[key]
+    //             }
+    //         }
+    //     }
+    //
+    //     return newState;
+    // }
 
     isReachable(): boolean {
         return this.state["reachable"] || false;

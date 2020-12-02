@@ -100,42 +100,71 @@ export class BehaviourWrapper implements DeviceBehaviourSupport {
   }
 
   getDeviceType(): DeviceType {
-    if ("colorgamut" in this.light.capabilities) {
-      return "COLORABLE";
+    if (this.light.getType() === "Color light" || this.light.getType() === "Extended color light") {
+      return "DIMMABLE"; // TODO Color lights
     }
-    else if ("ct" in this.light.capabilities) {
+    else if (this.light.getType() === "Color temperature light") {
       return "DIMMABLE"; // TODO Color temperature lights
     }
-    else {
+    else if (this.light.getType() === "Dimmable light") {
       return "DIMMABLE";
     }
   }
 
   getState(): DeviceStates {
-    return {type: "DIMMABLE", on: this.light.getState().on, brightness: this.light.getState().bri} as DimmableState
+    const deviceType = this.getDeviceType();
+    if (deviceType === "DIMMABLE") {
+      return {
+        type: this.getDeviceType(),
+        on: this.light.getState().on,
+        brightness: this.light.getState().bri
+      } as DimmableState
+    }
+    else if (deviceType === "COLORABLE") {
+      return {
+        type: this.getDeviceType(),
+        on: this.light.getState().on,
+        brightness: this.light.getState().bri,
+        hue: this.light.getState().hue,
+        saturation: this.light.getState().sat
+      } as ColorableState
+    }
   }
 
   _convertToBehaviourFormat(state: HueFullState): BehaviourStateUpdate {
     const oldState = this.state;
     this.state = GenericUtil.deepCopy(state);
-    switch(this.getDeviceType()){
+    switch (this.getDeviceType()) {
       case "DIMMABLE":
-        return (state.on && state.bri != oldState.bri)?{type: "DIMMING", value: this.state.bri}:(state.on)?{type: "SWITCH", value: true}:{type: "SWITCH", value: false}
+        return (state.on && state.bri != oldState.bri) ? {
+          type: "DIMMING",
+          value: this.state.bri
+        } : (state.on) ? {type: "SWITCH", value: true} : {type: "SWITCH", value: false}
       case "COLORABLE":
-        return ((state.on && state.bri != oldState.bri))?{type: "COLOR", brightness: this.state.bri,hue:this.state.hue,saturation:this.state.sat}:(state.on)?{type: "SWITCH", value: true}:{type: "SWITCH", value: false}
+        return ((state.on && state.bri != oldState.bri)) ? {
+          type: "COLOR",
+          brightness: this.state.bri,
+          hue: this.state.hue,
+          saturation: this.state.sat
+        } : (state.on) ? {type: "SWITCH", value: true} : {type: "SWITCH", value: false}
     }
   }
 
   _convertToHue(state: BehaviourStateUpdate): StateUpdate {
-    switch(state.type){
+    switch (state.type) {
       case "SWITCH":
         return {on: state.value}
       case "DIMMING":
-        return (state.value === 0)?{on: false}: {on: true, bri: state.value * 2.54}
+        return (state.value === 0) ? {on: false} : {on: true, bri: state.value * 2.54}
       case "COLOR":
-        return (state.brightness === 0)?{on: false}:{on: true, bri: state.brightness * 2.54, sat: state.saturation * 2.54, hue: state.hue * 182.04}
+        return (state.brightness === 0) ? {on: false} : {
+          on: true,
+          bri: state.brightness * 2.54,
+          sat: state.saturation * 2.54,
+          hue: state.hue * 182.04
         }
     }
+  }
 
 
 }

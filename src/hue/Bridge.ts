@@ -213,6 +213,7 @@ export class Bridge {
       state: data.state,
       id: data.id,
       bridgeId: this.bridgeId,
+      type: data.type,
       capabilities: data.capabilities.control,
       supportedStates: data.getSupportedStates(),
       api: this._useApi.bind(this)
@@ -284,6 +285,7 @@ export class Bridge {
         uniqueId: light.uniqueid,
         state: light.state,
         id: light.id,
+        type: light.type,
         bridgeId: this.bridgeId,
         capabilities: light.capabilities.control,
         supportedStates: light.getSupportedStates(),
@@ -370,6 +372,7 @@ export class Bridge {
         uniqueId: light.uniqueid,
         state: light.state,
         id: light.id,
+        type: light.type,
         bridgeId: this.bridgeId,
         capabilities: light.capabilities.control,
         supportedStates: light.getSupportedStates(),
@@ -383,7 +386,7 @@ export class Bridge {
 
   /** Extra layer for error handling, in case bridge fails or is turned off.
    */
-  async _useApi(action: string, extra?: number | [] | StateUpdate) {
+  async _useApi(action: ApiAction, extra?: number | [] | StateUpdate) {
     if (!exemptOfAuthentication[action]) {
       this._checkAuthentication()
     }

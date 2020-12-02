@@ -96,7 +96,8 @@ interface LightInitialization {
   bridgeId: string,
   capabilities: object,
   supportedStates: string[],
-  api: any
+  api: any,
+  type:LightType
 }
 
 interface LightCreation{
@@ -107,7 +108,8 @@ interface LightCreation{
   bridgeId: string,
   capabilities: { control: object },
   getSupportedStates(): string[];
-  api: any
+  api: any,
+  type:LightType
 
 }
 
@@ -131,3 +133,7 @@ interface LightCheckFormat{
 interface connectedLightsOnBridge { [uniqueId: string]: { name: string, id: number } }
 
 type StateEqualCheckVariables = "SEND_STATE_UPDATE_NEXT_EQUAL" | "STATE_NOT_EQUAL" | "STATE_UPDATE_SENT";
+
+type LightType = "Dimmable light" | "Color temperature light" | "Extended color light" | "Color light" ;
+
+type ApiAction = "createUnauthenticatedApi" | "createAuthenticatedApi" | "getFullBridgeInfo" | "getLightState" | "setLightState" | "getLightById" | "getBridgeConfiguration" | "createUser" | "getAllLights"

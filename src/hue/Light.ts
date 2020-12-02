@@ -36,6 +36,7 @@ export class Light {
   _transitionStartedAt: number = 0;
   _lastTransitionTime: number = 4; // n * 100ms
 
+  _type: LightType;
   readonly id: number;
   bridgeId: string;
   capabilities: object;
@@ -59,6 +60,7 @@ export class Light {
     this.capabilities = data.capabilities;
     this.supportedStates = data.supportedStates;
     this._api = data.api;
+    this._type = data.type;
     this._lastUpdate = Date.now();
   }
 
@@ -123,7 +125,8 @@ export class Light {
       id: this.id,
       supportedStates: this.supportedStates,
       capabilities: this.capabilities,
-      lastUpdate: this._lastUpdate
+      lastUpdate: this._lastUpdate,
+      type: this._type
     });
   }
 
@@ -149,6 +152,10 @@ export class Light {
 
   getTransitionFromState():HueStateBase{
     return this._transitionFromState
+  }
+
+  getType():LightType{
+    return this._type;
   }
   /**
    * Checks given state and updates the state object if different.

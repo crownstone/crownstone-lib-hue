@@ -14,6 +14,14 @@ import {Light} from "./hue/Light";
 export class CrownstoneHue {
   bridges: Bridge[] = [];
 
+
+  /** Adds a given Bridge to the Crownstone Hue object
+   * If username is given, starts initialization.
+   * If username is not given, use bridge.link();
+   * @param bridgeData
+   *
+   * @returns Bridge object
+   */
   async addBridge(bridgeData: BridgeInitialization): Promise<Bridge> {
     if ((bridgeData.bridgeId == null && bridgeData.ipAddress == null) || (bridgeData.bridgeId == null && bridgeData.ipAddress == "")
       || (bridgeData.bridgeId == "" && bridgeData.ipAddress == null) || (bridgeData.bridgeId == "" && bridgeData.ipAddress == "")) {
@@ -35,8 +43,10 @@ export class CrownstoneHue {
       ipAddress: bridgeData.ipAddress,
       bridgeId: bridgeData.bridgeId
     });
-    await bridge.init();
     this.bridges.push(bridge);
+    if(bridgeData.username !== null && bridgeData.username !== ""){
+      await bridge.init();
+    }
     return bridge;
   }
 

@@ -141,6 +141,11 @@ export const lightUtil = {
     return state;
   },
 
+  /** Checks if given states are equal based on HueStateVariables
+   * Ignores reachable field.
+   * @param stateA
+   * @param stateB
+   */
   stateEqual(stateA:HueLightState, stateB:HueLightState):boolean {
     let returnType = false;
     for (const key of Object.keys(stateA)) {
@@ -172,21 +177,21 @@ export const lightUtil = {
   miredCTToKelvin(miredCT:number):number{
     return 1000000*miredCT;
   },
-  HSBToMiredCT(hue:number,sat:number,bri:number){
-
-  },
-  kelvinToRGB(kelvin) {
-  return kelvinToRgb[kelvin];
-  },
-  RGBtoKelvin(rgb){
-
-  },
-  RGBtoHSB(rgb){
-
-  },
-  HSBtoRGB(HSB){
-
-  },
+  // HSBToMiredCT(hue:number,sat:number,bri:number){
+  //
+  // },
+  // kelvinToRGB(kelvin) {
+  // return kelvinToRgb[kelvin];
+  // },
+  // RGBtoKelvin(rgb){
+  //
+  // },
+  // RGBtoHSB(rgb){
+  //
+  // },
+  // HSBtoRGB(HSB){
+  //
+  // },
 
 
   //https://developers.meethue.com/develop/application-design-guidance/color-conversion-formulas-rgb-to-xy-and-back/
@@ -230,7 +235,29 @@ export const lightUtil = {
   //   g = g <= 0.0031308 ? 12.92 * g : (1.0 + 0.055) * Math.pow(g, (1.0 / 2.4)) - 0.055;
   //   b = b <= 0.0031308 ? 12.92 * b : (1.0 + 0.055) * Math.pow(b, (1.0 / 2.4)) - 0.055;
   //   return [r,g,b];
-  // }
+  // },
 
 
+  /** Calculates the supposed brightness based a point in time.
+   *
+   * @param fromBrightness
+   * @param toBrightness
+   * @param transitionTime
+   * @param transitionStartedAt
+   */
+  calculateCurrentBrightness(fromBrightness,toBrightness,transitionTime,transitionStartedAt){
+    // difference - (MS since trans. Start * ( difference / total time ms) = Calc bri
+      const timePassed = Date.now() - transitionStartedAt;
+      let difference = 0;
+      if(fromBrightness > toBrightness){
+        difference = fromBrightness - toBrightness;
+
+        const briPerMS = difference / ( transitionTime * 100)
+        return fromBrightness - (timePassed * briPerMS)
+      } else if(fromBrightness < toBrightness) {
+        difference =  toBrightness - fromBrightness;
+        const briPerMS = difference / ( transitionTime * 100)
+        return fromBrightness + (timePassed * briPerMS)
+      }
+    }
 }

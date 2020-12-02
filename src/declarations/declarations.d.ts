@@ -129,3 +129,5 @@ interface LightCheckFormat{
 
 
 interface connectedLightsOnBridge { [uniqueId: string]: { name: string, id: number } }
+
+type StateEqualCheckVariables = "SEND_STATE_UPDATE_NEXT_EQUAL" | "STATE_NOT_EQUAL" | "STATE_UPDATE_SENT";

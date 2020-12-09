@@ -1,6 +1,5 @@
 jest.mock("node-hue-api/lib/api/Api", jest.fn())
-import {Light} from "../src";
-import * as Api from "node-hue-api/lib/api/Api";
+import {eventBus, Light} from "../src";
 import {lightUtil} from "../src/util/LightUtil";
 
 afterEach(() =>{
@@ -142,6 +141,36 @@ describe('Light', () => {
     light._stateNotEqualCount = 4;
     await light.update({state: {on: true, bri: 178}});
     expect(light.getState().bri).toBe(178)
+  })
+
+  test('Light state change update',async ()=>{
+    Date.now = jest.fn(() => Date.parse(new Date(2020, 9, 4, 13, 20, 10).toString()));
+    const light = new Light({
+      name: "Fake light", uniqueId: "1234ABCD", state: {
+        "on": true,
+        "bri": 140,
+        "alert": "select",
+        "mode": "homeautomation",
+        "reachable": true
+      },
+      type: "Dimmable light", id: 0, bridgeId: "aaccdffee22f", capabilities: {}, supportedStates: [], api: mockApi
+    })
+    await light.setState({bri: 254, transitiontime: 600});
+    let eventEmitted = false;
+    eventBus.subscribe('onLightStateChange',(data)=>{
+      expect(JSON.parse(data)).toStrictEqual({uniqueId:"1234ABCD",state:
+      {
+        "on": true,
+        "bri": 178,
+        "alert": "select",
+        "mode": "homeautomation",
+        "reachable": true
+      }})
+      eventEmitted = true;
+      })
+
+    await light.update({state: {on: true, bri: 178}});
+    expect(eventEmitted).toBe(true);
   })
 
 })

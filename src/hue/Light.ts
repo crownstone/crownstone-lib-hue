@@ -1,7 +1,7 @@
 import {lightUtil} from "../util/LightUtil";
 import {GenericUtil} from "../util/GenericUtil";
-import {eventBus} from "../util/EventBus";
-import {ON_LIGHT_REACHABILITY_CHANGE} from "../constants/EventConstants";
+import { eventBus} from "../util/EventBus";
+import {LIGHT_STATE_CHANGE} from "../constants/EventConstants";
 import {CrownstoneHueError} from "..";
 
 
@@ -85,6 +85,7 @@ export class Light {
    */
   async renewState() {
     let newState = await this._api("getLightState", this.id) as FailedConnection | HueFullState;
+
     if (!newState || "hadConnectionFailure" in newState) {
       return;
     }
@@ -174,25 +175,48 @@ export class Light {
       return;
     }
     const isEqual = lightUtil.stateEqual(this._currentLightState, newState);
-    if (this.inTransition && lightUtil.stateEqual(this._transitionToState, this._currentLightState,)) {
-      this.inTransition = false;
-    }
+
 
     if (!isEqual) {
+      if(this._retrievedStateIsGivenStateCheck(newState)){
+        return;
+      }
       this._updateState(newState);
       this._onUnEqualState()
     }
-    else if (isEqual) {
+    else if (isEqual && this._currentLightState.reachable === newState.reachable) {
+      this._inTransitionCheck();
       this._onEqualState();
     }
     else if (this._currentLightState.reachable !== newState.reachable) {
-      eventBus.emit(ON_LIGHT_REACHABILITY_CHANGE, JSON.stringify({
-        uniqueId: this.uniqueId,
-        reachable: newState.reachable
-      }))
       this._currentLightState.reachable = newState.reachable
+      this._emitCurrentState();
       this._setLastUpdate();
     }
+  }
+
+  /** Checks if light is still in transition
+   * Checks if state is equal with a time prediction.
+   *
+   * Time prediction is because sometimes the just set light state is given by the Bridge instead of the light's actual state.
+   */
+  _inTransitionCheck(){
+    const timePassed = this._transitionStartedAt - Date.now();
+    if ((this.inTransition && lightUtil.stateEqual(this._transitionToState, this._currentLightState) && (timePassed > this._lastTransitionTime*100))
+      ||this.inTransition && timePassed > this._lastTransitionTime+10*100 ) {
+      this.inTransition = false;
+    }
+     }
+
+
+  /** Checks if given state is equal to the state it has to transition to and under the transition time
+   * This is because sometimes during polling, the just passed state to the bridge is given back by the bridge.
+   * This is not the actual Light state but probably a cached state.
+   */
+  _retrievedStateIsGivenStateCheck(state:HueFullState):boolean{
+    const timePassed = Date.now() - this._transitionStartedAt;
+    return lightUtil.stateEqual(this._transitionToState, state) && (timePassed < this._lastTransitionTime * 100);
+
   }
 
   /** Filters unnecessary states for optimization
@@ -259,30 +283,34 @@ export class Light {
       return false;
     }
     if("bri" in this._transitionToState){
+      const offsetValue = Math.abs(this._transitionFromState.bri - this._transitionToState.bri)*0.05
       const expectedBrightness = lightUtil.calculateCurrentValueLinear(this._transitionFromState.bri, this._transitionToState.bri, this._lastTransitionTime, this._transitionStartedAt)
       const difference = expectedBrightness - this._currentLightState.bri;
-      if(!(this._transitionToState.bri === 0 && !this._currentLightState.on) || (difference <= 12.7 && difference >= -12.7)){
+      if(!(this._transitionToState.bri === 0 && !this._currentLightState.on) || (difference <= offsetValue && difference >= -offsetValue)){
         return false
       }
     }
     if("sat" in this._transitionToState){
+      const offsetValue = Math.abs(this._transitionFromState.sat - this._transitionToState.sat)*0.05
       const expectedSaturation = lightUtil.calculateCurrentValueLinear(this._transitionFromState.sat, this._transitionToState.sat, this._lastTransitionTime, this._transitionStartedAt)
       const difference = expectedSaturation - this._currentLightState.sat;
-      if(!(difference <= 12.7 && difference >= -12.7)){
+      if(!(difference <= offsetValue && difference >= -offsetValue)){
         return false
       }
     }
     if("hue" in this._transitionToState){
+      const offsetValue = Math.abs(this._transitionFromState.hue - this._transitionToState.hue)*0.05
       const expectedHue = lightUtil.calculateCurrentHue(this._transitionFromState.hue, this._transitionToState.hue, this._lastTransitionTime, this._transitionStartedAt)
       const difference = expectedHue - this._currentLightState.hue;
-      if(!(difference <= 200 && difference >= -200)){
+      if(!(difference <= offsetValue && difference >= -offsetValue)){
         return false
       }
     }
     if("ct" in this._transitionToState){
+      const offsetValue = Math.abs(this._transitionFromState.ct - this._transitionToState.ct)*0.05
       const expectedCT = lightUtil.calculateCurrentValueLinear(this._transitionFromState.ct, this._transitionToState.ct, this._lastTransitionTime, this._transitionStartedAt)
       const difference = expectedCT - this._currentLightState.ct;
-      if(!(difference <= 12.7 && difference >= -12.7)){
+      if(!(difference <= offsetValue && difference >= -offsetValue)){
         return false
       }
     }
@@ -290,7 +318,7 @@ export class Light {
   }
 
   _updateTransitionState(state: StateUpdate): void {
-    this._lastTransitionTime = state.transitiontime | 4;
+    this._lastTransitionTime = state.transitiontime || 4;
     this._transitionFromState = <HueFullState>GenericUtil.deepCopy(this._currentLightState)
     if (this._transitionToState === null
     ) {
@@ -312,6 +340,10 @@ export class Light {
       }
     })
     this._setLastUpdate()
+    this._emitCurrentState();
+  }
+  _emitCurrentState(){
+    eventBus.emit(LIGHT_STATE_CHANGE,JSON.stringify({uniqueId: this.uniqueId,state:this._currentLightState}))
   }
 
   _setLastUpdate(): void {

@@ -25,7 +25,7 @@ describe('Light', () => {
         "alert": "select",
         "mode": "homeautomation",
         "reachable": true
-      }, id: 0, bridgeId: "aaccdffee22f", capabilities: {}, supportedStates: [], api: mockApi
+      },type: "Dimmable light", id: 0, bridgeId: "aaccdffee22f", capabilities: {}, supportedStates: [], api: mockApi
     })
     await light.renewState();
     expect(light.getState()).toStrictEqual(fakeState)
@@ -38,7 +38,7 @@ describe('Light', () => {
         "alert": "select",
         "mode": "homeautomation",
         "reachable": true
-      }, id: 0, bridgeId: "aaccdffee22f", capabilities: {}, supportedStates: [], api: mockApi
+      },type: "Dimmable light", id: 0, bridgeId: "aaccdffee22f", capabilities: {}, supportedStates: [], api: mockApi
     })
     await light.renewState();
     expect(light.getState()).toStrictEqual(fakeState)
@@ -52,7 +52,7 @@ describe('Light', () => {
         "alert": "select",
         "mode": "homeautomation",
         "reachable": true
-      }, id: 0, bridgeId: "aaccdffee22f", capabilities: {}, supportedStates: [], api: mockApi
+      },type: "Dimmable light", id: 0, bridgeId: "aaccdffee22f", capabilities: {}, supportedStates: [], api: mockApi
     })
     await light.setState({on: true, bri: 10000});
     expect(light.getTransitionToState()).toMatchObject({
@@ -68,7 +68,7 @@ describe('Light', () => {
         "alert": "select",
         "mode": "homeautomation",
         "reachable": true
-      }, id: 0, bridgeId: "aaccdffee22f", capabilities: {}, supportedStates: [], api: mockApi
+      }, type: "Dimmable light", id: 0, bridgeId: "aaccdffee22f", capabilities: {}, supportedStates: [], api: mockApi
     })
     await light.setState({on: true, bri: -100});
     expect(light.getTransitionToState()).toMatchObject({
@@ -106,7 +106,7 @@ describe('Light', () => {
         "alert": "select",
         "mode": "homeautomation",
         "reachable": true
-      }, id: 0, bridgeId: "aaccdffee22f", capabilities: {}, supportedStates: [], api: mockApi
+      }, type: "Dimmable light", id: 0, bridgeId: "aaccdffee22f", capabilities: {}, supportedStates: [], api: mockApi
     })
     await light.update({
       state: {
@@ -134,15 +134,14 @@ describe('Light', () => {
         "alert": "select",
         "mode": "homeautomation",
         "reachable": true
-      }, id: 0, bridgeId: "aaccdffee22f", capabilities: {}, supportedStates: [], api: mockApi
+      },
+      type: "Dimmable light", id: 0, bridgeId: "aaccdffee22f", capabilities: {}, supportedStates: [], api: mockApi
     })
     await light.setState({bri: 254, transitiontime: 600});
     Date.now = jest.fn(() => Date.parse(new Date(2020, 9, 4, 13, 20, 30).toString()));
     light._stateNotEqualCount = 4;
     await light.update({state: {on: true, bri: 178}});
     expect(light.getState().bri).toBe(178)
-
-
   })
 
 })

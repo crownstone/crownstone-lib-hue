@@ -13,6 +13,7 @@ export const ERROR_CODES = {
     422: "Light is not found on the bridge.",
     423: "Cannot manipulate light when light is off.",
     424: "Something went wrong with an action call to the Philips Hue Bridge, see description for more information.",
+    425: "Given light type is not supported.",
     888: "Unknown action call to Hue Api.",
     999: "Unknown Error, see description."
 }

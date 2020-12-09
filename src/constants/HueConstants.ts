@@ -41,3 +41,6 @@ export const DISCOVERY_URL = "https://discovery.meethue.com/";
 export const LIGHT_POLLING_RATE = 500;
 
 export const RECONNECTION_TIMEOUT_TIME = 10000;
+
+export const HUE_CONVERSION_VALUE = 182.04
+export const PERCENTAGE_CONVERSION_VALUE = 2.54

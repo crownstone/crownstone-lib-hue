@@ -134,6 +134,6 @@ interface connectedLightsOnBridge { [uniqueId: string]: { name: string, id: numb
 
 type StateEqualCheckVariables = "SEND_STATE_UPDATE_NEXT_EQUAL" | "STATE_NOT_EQUAL" | "STATE_UPDATE_SENT";
 
-type LightType = "Dimmable light" | "Color temperature light" | "Extended color light" | "Color light" ;
+type LightType = "On/Off light" | "Dimmable light" | "Color temperature light" | "Extended color light" | "Color light" ;
 
 type ApiAction = "createUnauthenticatedApi" | "createAuthenticatedApi" | "getFullBridgeInfo" | "getLightState" | "setLightState" | "getLightById" | "getBridgeConfiguration" | "createUser" | "getAllLights"

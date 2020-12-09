@@ -30,7 +30,7 @@ export class Light {
   _currentLightState: HueFullState;
   _prevState: HueFullState;
 
-  inTransition: boolean  = false;
+  inTransition: boolean = false;
   _transitionToState: HueLightState = null;
   _transitionFromState: HueLightState = null;
   _transitionStartedAt: number = 0;
@@ -97,8 +97,16 @@ export class Light {
    * Sets the state of the light.
    */
   async setState(state: StateUpdate): Promise<boolean> {
+    if (!this._currentLightState.reachable) {
+      return false;
+    }
     state = lightUtil.manipulateMinMaxValueStates(state);
-    const result = await this._api("setLightState", [this.id.toString(), this._optimizeState(state)]) as FailedConnection | boolean;
+    const optimizedState = this._optimizeState(state);
+    if (Object.values(optimizedState).length === 0) {
+      return true;
+    }
+
+    const result = await this._api("setLightState", [this.id.toString(), optimizedState]) as FailedConnection | boolean;
     if (!result) {
       throw new CrownstoneHueError(424, "Setting the state of light " + this.name + " gone wrong.")
     }
@@ -146,17 +154,18 @@ export class Light {
     return <HueFullState>GenericUtil.deepCopy(this._stateSentToCallback);
   }
 
-  getTransitionToState():HueStateBase{
+  getTransitionToState(): HueStateBase {
     return this._transitionToState
   }
 
-  getTransitionFromState():HueStateBase{
+  getTransitionFromState(): HueStateBase {
     return this._transitionFromState
   }
 
-  getType():LightType{
+  getType(): LightType {
     return this._type;
   }
+
   /**
    * Checks given state and updates the state object if different.
    */
@@ -165,7 +174,7 @@ export class Light {
       return;
     }
     const isEqual = lightUtil.stateEqual(this._currentLightState, newState);
-    if(this.inTransition && lightUtil.stateEqual(this._currentLightState, this._transitionToState)){
+    if (this.inTransition && lightUtil.stateEqual(this._transitionToState, this._currentLightState,)) {
       this.inTransition = false;
     }
 
@@ -192,18 +201,26 @@ export class Light {
    * Example: Light is already on, no need to send on command.
    * @param state
    */
-  _optimizeState(state:StateUpdate):StateUpdate{
-      let newState = {}
-      for(const key of Object.keys(state)){
-          if(this._currentLightState[key] && state[key] !== this._currentLightState[key]){
-              if(this._currentLightState[key][0] !== state[key][0] || this._currentLightState[key][1] !== state[key][1]){
-                 newState[key] = [state[key][0], state[key][1]]
-              } else {
-                  newState[key] = state[key]
-              }
-          }
+  _optimizeState(state: StateUpdate): StateUpdate {
+    let newState = {}
+    for (const key of Object.keys(state)) {
+      if (this._currentLightState[key] !== undefined && state[key] !== this._currentLightState[key]) {
+        if (key === "xy" && (this._currentLightState[key][0] !== state[key][0] || this._currentLightState[key][1] !== state[key][1])) {
+          newState[key] = [state[key][0], state[key][1]]
+        }
+        else {
+        }
+        newState[key] = state[key]
       }
-      return newState;
+    }
+    if (Object.keys(newState).length > 0 && "transitiontime" in state) {
+      newState["transitiontime"] = state["transitiontime"]
+    }
+    if (Object.keys(newState).length > 0 && !this._currentLightState.on) {
+      newState["on"] = true;
+    }
+
+    return newState;
   }
 
   /** Should send new state after it was 2 times equal.
@@ -236,20 +253,48 @@ export class Light {
     this._stateSentToCallback = GenericUtil.deepCopy(this._currentLightState);
   }
 
+  //Todo naar 5% absoluut op de from to
   _isStateExpected(): boolean {
-    if(!this.inTransition){
+    if (!this.inTransition || !this._transitionToState || !this._transitionFromState) {
       return false;
     }
-    const expectedBrightness = lightUtil.calculateCurrentBrightness(this._transitionFromState.bri, this._transitionToState.bri, this._lastTransitionTime, this._transitionStartedAt)
-    const difference = expectedBrightness - this._currentLightState.bri;
-    return (this._transitionToState.bri === 0 && !this._currentLightState.on) || (difference <= 12.7 && difference >= -12.7)
+    if("bri" in this._transitionToState){
+      const expectedBrightness = lightUtil.calculateCurrentValueLinear(this._transitionFromState.bri, this._transitionToState.bri, this._lastTransitionTime, this._transitionStartedAt)
+      const difference = expectedBrightness - this._currentLightState.bri;
+      if(!(this._transitionToState.bri === 0 && !this._currentLightState.on) || (difference <= 12.7 && difference >= -12.7)){
+        return false
+      }
+    }
+    if("sat" in this._transitionToState){
+      const expectedSaturation = lightUtil.calculateCurrentValueLinear(this._transitionFromState.sat, this._transitionToState.sat, this._lastTransitionTime, this._transitionStartedAt)
+      const difference = expectedSaturation - this._currentLightState.sat;
+      if(!(difference <= 12.7 && difference >= -12.7)){
+        return false
+      }
+    }
+    if("hue" in this._transitionToState){
+      const expectedHue = lightUtil.calculateCurrentHue(this._transitionFromState.hue, this._transitionToState.hue, this._lastTransitionTime, this._transitionStartedAt)
+      const difference = expectedHue - this._currentLightState.hue;
+      if(!(difference <= 200 && difference >= -200)){
+        return false
+      }
+    }
+    if("ct" in this._transitionToState){
+      const expectedCT = lightUtil.calculateCurrentValueLinear(this._transitionFromState.ct, this._transitionToState.ct, this._lastTransitionTime, this._transitionStartedAt)
+      const difference = expectedCT - this._currentLightState.ct;
+      if(!(difference <= 12.7 && difference >= -12.7)){
+        return false
+      }
+    }
+    return true;
   }
 
   _updateTransitionState(state: StateUpdate): void {
     this._lastTransitionTime = state.transitiontime | 4;
     this._transitionFromState = <HueFullState>GenericUtil.deepCopy(this._currentLightState)
-    if(this._transitionToState === null){
-      this._transitionToState = {on:true};
+    if (this._transitionToState === null
+    ) {
+      this._transitionToState = {on: true};
     }
     Object.keys(state).forEach(key => {
       if (lightUtil.isAllowedStateType(key)) {

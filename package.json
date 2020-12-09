@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "@types/node-hue-api": "^2.3.1",
+    "color-convert": "^2.0.1",
     "node-fetch": "^2.6.1",
     "node-hue-api": "^4.0.9"
   },

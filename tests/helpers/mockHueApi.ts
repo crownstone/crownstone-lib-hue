@@ -17,6 +17,7 @@ export const fakeLightsOnBridge = [{
     "reachable": true
   },
   id: 0,
+  type:"Dimmable light",
   bridgeId: "ABDCFFFEAKE91",
   capabilities: {control: {}},
   getSupportedStates: (() => {
@@ -33,6 +34,7 @@ export const fakeLightsOnBridge = [{
     "reachable": true
   },
   id: 1,
+  type:"Dimmable light",
   bridgeId: "ABDCFFFEAKE91",
   capabilities: {control: {}},
   getSupportedStates: (() => {

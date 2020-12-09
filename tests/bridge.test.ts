@@ -254,6 +254,7 @@ describe("Bridge", () => {
         "reachable": true
       },
       id: 2,
+      type: "Dimmable light",
       bridgeId: "ABDCFFFEAKE91",
       capabilities: {control: {}},
       getSupportedStates: (() => {
@@ -277,9 +278,6 @@ describe("Bridge", () => {
     bridge.stopPolling()
     return;
   })
-
-
-
 })
 
 

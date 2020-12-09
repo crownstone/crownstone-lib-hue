@@ -1,75 +1,7 @@
-/** Switch command
- *  @param value - True | False
- */
-import {Light} from "..";
+import {CrownstoneHue, CrownstoneHueError, Light} from "..";
+import {HUE_CONVERSION_VALUE, PERCENTAGE_CONVERSION_VALUE} from "../constants/HueConstants";
+import {lightUtil} from "../util/LightUtil";
 import {GenericUtil} from "../util/GenericUtil";
-
-
-interface switchCommand {
-  type: "SWITCH",
-  value: boolean
-}
-
-/** Dimming command.
- * @param value - Should have a range from 0 to 100;
- *
- * Value == 0 == Off, Value > 0 === On + brightness level.
- */
-interface dimmingCommand {
-  type: "DIMMING",
-  value: number
-}
-
-/** Color command
- * @param hue - Should have a range from 0 to 360;
- * @param saturation - Should have a range from 0 to 100;
- * @param brightness - Should have a range from 0 to 100;
- */
-
-interface colorCommand {
-  type: "COLOR",
-  hue: number,
-  brightness: number,
-  saturation: number
-}
-
-type BehaviourStateUpdate = switchCommand | dimmingCommand | colorCommand;
-
-interface SwitchableState {
-  type: "SWITCHABLE",
-  on: boolean
-}
-
-interface DimmableState {
-  type: "DIMMABLE",
-  on: boolean,
-  brightness: number
-}
-
-interface ColorableState {
-  type: "COLORABLE",
-  on: boolean,
-  hue: number,
-  brightness: number,
-  saturation: number
-}
-
-type DeviceStates = SwitchableState | DimmableState | ColorableState
-
-type DeviceType = "SWITCHABLE" | "DIMMABLE" | "COLORABLE";
-
-
-interface DeviceBehaviourSupport {
-  receiveStateUpdate(state: BehaviourStateUpdate): void
-
-  setStateUpdateCallback(callback: ((state: BehaviourStateUpdate) => {})): void
-
-  getUniqueId(): string
-
-  getDeviceType(): DeviceType
-
-  getState(): DeviceStates
-}
 
 export class BehaviourWrapper implements DeviceBehaviourSupport {
   light: Light;
@@ -78,7 +10,7 @@ export class BehaviourWrapper implements DeviceBehaviourSupport {
 
   constructor(light) {
     this.light = light;
-    light.getState();
+    this.state = light.getState();
   }
 
   async receiveStateUpdate(state: BehaviourStateUpdate): Promise<void> {
@@ -100,34 +32,48 @@ export class BehaviourWrapper implements DeviceBehaviourSupport {
   }
 
   getDeviceType(): DeviceType {
-    if (this.light.getType() === "Color light" || this.light.getType() === "Extended color light") {
-      return "DIMMABLE"; // TODO Color lights
-    }
-    else if (this.light.getType() === "Color temperature light") {
-      return "DIMMABLE"; // TODO Color temperature lights
-    }
-    else if (this.light.getType() === "Dimmable light") {
-      return "DIMMABLE";
+    switch (this.light.getType()) {
+      case "On/Off light":
+        return "SWITCHABLE";
+      case "Color light":
+        return "COLORABLE";
+      case "Extended color light":
+        return "COLORABLE"
+      case "Color temperature light" :
+        return "COLORABLE_TEMPERATURE";
+      case "Dimmable light":
+        return "DIMMABLE";
+      default:
+        throw new CrownstoneHueError(425)
     }
   }
 
   getState(): DeviceStates {
-    const deviceType = this.getDeviceType();
-    if (deviceType === "DIMMABLE") {
-      return {
-        type: this.getDeviceType(),
-        on: this.light.getState().on,
-        brightness: this.light.getState().bri
-      } as DimmableState
-    }
-    else if (deviceType === "COLORABLE") {
-      return {
-        type: this.getDeviceType(),
-        on: this.light.getState().on,
-        brightness: this.light.getState().bri,
-        hue: this.light.getState().hue,
-        saturation: this.light.getState().sat
-      } as ColorableState
+    switch (this.getDeviceType()) {
+      case "SWITCHABLE":
+        return {type: "SWITCHABLE", on: this.light.getState().on}
+      case "DIMMABLE":
+        return {
+          type: "DIMMABLE",
+          on: this.light.getState().on,
+          brightness: this.light.getState().bri /  PERCENTAGE_CONVERSION_VALUE
+        }
+      case "COLORABLE":
+        return {
+          type: "COLORABLE",
+          on: this.light.getState().on,
+          brightness: this.light.getState().bri /  PERCENTAGE_CONVERSION_VALUE,
+          hue: this.light.getState().hue / HUE_CONVERSION_VALUE,
+          saturation: this.light.getState().sat /  PERCENTAGE_CONVERSION_VALUE,
+          temperature: lightUtil.convertTemperature(this.light.getState().ct)
+        }
+      case "COLORABLE_TEMPERATURE":
+        return {
+          type: "COLORABLE_TEMPERATURE",
+          on: this.light.getState().on,
+          brightness: this.light.getState().bri / PERCENTAGE_CONVERSION_VALUE,
+          temperature: lightUtil.convertTemperature(this.light.getState().ct),
+        }
     }
   }
 
@@ -135,17 +81,25 @@ export class BehaviourWrapper implements DeviceBehaviourSupport {
     const oldState = this.state;
     this.state = GenericUtil.deepCopy(state);
     switch (this.getDeviceType()) {
+      case "SWITCHABLE":
+        return {type: "SWITCH", value: state.on};
       case "DIMMABLE":
         return (state.on && state.bri != oldState.bri) ? {
           type: "DIMMING",
-          value: this.state.bri
+          value: this.state.bri /  PERCENTAGE_CONVERSION_VALUE
         } : (state.on) ? {type: "SWITCH", value: true} : {type: "SWITCH", value: false}
       case "COLORABLE":
         return ((state.on && state.bri != oldState.bri)) ? {
           type: "COLOR",
-          brightness: this.state.bri,
-          hue: this.state.hue,
-          saturation: this.state.sat
+          brightness: this.state.bri /  PERCENTAGE_CONVERSION_VALUE,
+          hue: this.state.hue / HUE_CONVERSION_VALUE ,
+          saturation: this.state.sat /  PERCENTAGE_CONVERSION_VALUE
+        } : (state.on) ? {type: "SWITCH", value: true} : {type: "SWITCH", value: false}
+      case "COLORABLE_TEMPERATURE":
+        return ((state.on && state.bri != oldState.bri)) ? {
+          type: "COLOR_TEMPERATURE",
+          brightness: this.state.bri /  PERCENTAGE_CONVERSION_VALUE,
+          temperature: lightUtil.convertTemperature(this.light.getState().ct),
         } : (state.on) ? {type: "SWITCH", value: true} : {type: "SWITCH", value: false}
     }
   }
@@ -155,16 +109,20 @@ export class BehaviourWrapper implements DeviceBehaviourSupport {
       case "SWITCH":
         return {on: state.value}
       case "DIMMING":
-        return (state.value === 0) ? {on: false} : {on: true, bri: state.value * 2.54}
+        return (state.value === 0) ? {on: false} : {on: true, bri: state.value * PERCENTAGE_CONVERSION_VALUE}
       case "COLOR":
         return (state.brightness === 0) ? {on: false} : {
           on: true,
-          bri: state.brightness * 2.54,
-          sat: state.saturation * 2.54,
-          hue: state.hue * 182.04
+          bri: state.brightness * PERCENTAGE_CONVERSION_VALUE,
+          sat: state.saturation * PERCENTAGE_CONVERSION_VALUE,
+          hue: state.hue * HUE_CONVERSION_VALUE
+        }
+      case "COLOR_TEMPERATURE":
+        return (state.brightness === 0) ? {on: false} : {
+          on: true,
+          bri: state.brightness * PERCENTAGE_CONVERSION_VALUE,
+          ct: lightUtil.convertTemperature(state.temperature),
         }
     }
   }
-
-
 }

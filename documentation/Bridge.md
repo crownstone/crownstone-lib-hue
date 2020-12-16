@@ -19,6 +19,7 @@
   - [Getters](#getters)
   - [Remaining functions](#remaining-functions)
 - [Light](/documentation/Light.md)
+- [Behaviour Wrapper](/documentation/BehaviourWrapper.md)
 - [Errors](/documentation/Errors.md)
 - [Event calls](/documentation/EventCalls.md) 
 
@@ -87,9 +88,9 @@ To configure a light that is connected to the Philips Bridge, call:
 
 `Id` represents the id of the light on the bridge and `uniqueId` represents the light's uniqueId.
 
-On success, it will return an uninitialized Light object.
+On success, it will return a Light object.
 
-In case of a wrong id or the uniqueId doesn't match the id used, it attempts to find by uniqueId.
+In case of a wrong id or the uniqueId doesn't match the id used, it attempts to find the light by uniqueId.
 When light is not found it throws an error. 
 If the bridge has connection issues, it attempts to redo this operation every 10 seconds.
 
@@ -203,4 +204,4 @@ lights: Light[]
 
 `getAllLightsFromBridge():Promise<Light[]>` Returns an array with all Light objects that are retrieved from the actual Philips Hue Bridge, corresponding all Hue Lights connected to the Philips Hue Bridge. These Light objects aren't initialized.
 
-`populateLights():Promise<void>` Add all Philips Hue Lights from the Philips Hue Bridge to the bridge's light list. These Light objects aren't initialized.
+`populateLights():Promise<void>` Adds all Philips Hue Lights from the Philips Hue Bridge to the bridge's light list. These Light objects aren't initialized.

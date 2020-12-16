@@ -70,18 +70,18 @@ interface ColorableTemperatureState{
   temperature: number,
   brightness: number
 }
-type DeviceStates = SwitchableState | DimmableState | ColorableState | ColorableTemperatureState
+type DeviceState = SwitchableState | DimmableState | ColorableState | ColorableTemperatureState
 type DeviceType = "SWITCHABLE" | "DIMMABLE" | "COLORABLE" | "COLORABLE_TEMPERATURE";
 
 
 interface DeviceBehaviourSupport {
   receiveStateUpdate(state: BehaviourStateUpdate): void
 
-  setStateUpdateCallback(callback: ((state: BehaviourStateUpdate) => {})): void
+  setStateUpdateCallback(callback: ((state: BehaviourStateUpdate) => void)): void
 
   getUniqueId(): string
 
   getDeviceType(): DeviceType
 
-  getState(): DeviceStates
+  getState(): DeviceState
 }

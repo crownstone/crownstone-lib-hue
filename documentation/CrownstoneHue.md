@@ -12,6 +12,7 @@
  - [Discovery](/documentation/Discovery.md)
  - [Bridge](/documentation/Bridge.md)
  - [Light](/documentation/Light.md)
+ - [Behaviour Wrapper](/documentation/BehaviourWrapper.md)
  - [Errors](/documentation/Errors.md)
  - [Event calls](/documentation/EventCalls.md) 
 

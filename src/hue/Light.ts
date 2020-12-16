@@ -32,7 +32,7 @@ export class Light {
 
   inTransition: boolean = false;
   _transitionToState: HueLightState = null;
-  _transitionFromState: HueLightState = null;
+  _transitionFromState: HueFullState = null;
   _transitionStartedAt: number = 0;
   _lastTransitionTime: number = 4; // n * 100ms
 
@@ -155,11 +155,11 @@ export class Light {
     return <HueFullState>GenericUtil.deepCopy(this._stateSentToCallback);
   }
 
-  getTransitionToState(): HueStateBase {
+  getTransitionToState(): HueLightState {
     return this._transitionToState
   }
 
-  getTransitionFromState(): HueStateBase {
+  getTransitionFromState(): HueFullState {
     return this._transitionFromState
   }
 
@@ -215,6 +215,9 @@ export class Light {
    */
   _retrievedStateIsGivenStateCheck(state:HueFullState):boolean{
     const timePassed = Date.now() - this._transitionStartedAt;
+   if(!this._transitionToState || !this._transitionFromState){
+     return false;
+   }
     return lightUtil.stateEqual(this._transitionToState, state) && (timePassed < this._lastTransitionTime * 100);
 
   }

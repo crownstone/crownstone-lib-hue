@@ -6,6 +6,7 @@
 - [Discovery](/documentation/Discovery.md)
 - [Bridge](/documentation/Bridge.md)
 - [Light](/documentation/Light.md)
+- [Behaviour Wrapper](/documentation/BehaviourWrapper.md)
 - **Errors**
 - [Event calls](/documentation/EventCalls.md)  
 
@@ -27,7 +28,15 @@ See below for the codes with some extra description for possible reasons.
 - 407: "Bridge is not initialized." - An api call is done while the Bridge was not initialized yet.
 - 408: "Bridge has no Bridge Id and thus cannot be rediscovered." 
 - 409: "The given light already exists."
+- 410: "The given bridge already exists."
 - 412: "Something went wrong when trying to configure a light."
+- 413: "Bridge cannot be created, neither an ip address nor a bridge id is given."
 - 422: "Light is not found on the bridge." - Probably a wrong id used, see the description for the light id.
+- 423: "Cannot manipulate light when light is off."
+- 424: "Something went wrong with an action call to the Philips Hue Bridge, see description for more information."
+- 425: "Given light type is not supported."
 - 888: "Unknown action call to Hue Api." - Will be thrown if bridge use api method receives an unknown action string
 - 999: "Unknown Error, see description." - This one will most likely be thrown if an error from the external library is not specifically converted and/or something unexpected happened.
+
+
+ 

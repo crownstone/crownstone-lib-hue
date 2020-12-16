@@ -6,9 +6,9 @@ import {GenericUtil} from "../util/GenericUtil";
 export class BehaviourWrapper implements DeviceBehaviourSupport {
   light: Light;
   state: HueFullState
-  callback: ((state: BehaviourStateUpdate) => {});
+  callback: ((state: BehaviourStateUpdate) => void) = function(state){};
 
-  constructor(light) {
+  constructor(light: Light) {
     this.light = light;
     this.state = light.getState();
   }
@@ -18,12 +18,12 @@ export class BehaviourWrapper implements DeviceBehaviourSupport {
 
   }
 
-  setStateUpdateCallback(callback: ((state: BehaviourStateUpdate) => {})): void {
+  setStateUpdateCallback(callback: ((state: BehaviourStateUpdate) => void)): void {
     this.callback = callback;
     this.light.setStateUpdateCallback(this.sendStateToBehaviour.bind(this));
   }
 
-  sendStateToBehaviour(state): void {
+  sendStateToBehaviour(state: HueLightState): void {
     this.callback(this._convertToBehaviourFormat(state));
   }
 
@@ -48,7 +48,7 @@ export class BehaviourWrapper implements DeviceBehaviourSupport {
     }
   }
 
-  getState(): DeviceStates {
+  getState(): DeviceState {
     switch (this.getDeviceType()) {
       case "SWITCHABLE":
         return {type: "SWITCHABLE", on: this.light.getState().on}
@@ -56,28 +56,28 @@ export class BehaviourWrapper implements DeviceBehaviourSupport {
         return {
           type: "DIMMABLE",
           on: this.light.getState().on,
-          brightness: this.light.getState().bri /  PERCENTAGE_CONVERSION_VALUE
+          brightness: Math.round(this.light.getState().bri / PERCENTAGE_CONVERSION_VALUE)
         }
       case "COLORABLE":
         return {
           type: "COLORABLE",
           on: this.light.getState().on,
-          brightness: this.light.getState().bri /  PERCENTAGE_CONVERSION_VALUE,
-          hue: this.light.getState().hue / HUE_CONVERSION_VALUE,
-          saturation: this.light.getState().sat /  PERCENTAGE_CONVERSION_VALUE,
+          brightness:  Math.round(this.light.getState().bri / PERCENTAGE_CONVERSION_VALUE),
+          hue:  Math.round(this.light.getState().hue / HUE_CONVERSION_VALUE),
+          saturation:  Math.round(this.light.getState().sat / PERCENTAGE_CONVERSION_VALUE),
           temperature: lightUtil.convertTemperature(this.light.getState().ct)
         }
       case "COLORABLE_TEMPERATURE":
         return {
           type: "COLORABLE_TEMPERATURE",
           on: this.light.getState().on,
-          brightness: this.light.getState().bri / PERCENTAGE_CONVERSION_VALUE,
+          brightness:  Math.round(this.light.getState().bri / PERCENTAGE_CONVERSION_VALUE),
           temperature: lightUtil.convertTemperature(this.light.getState().ct),
         }
     }
   }
 
-  _convertToBehaviourFormat(state: HueFullState): BehaviourStateUpdate {
+  _convertToBehaviourFormat(state: HueLightState): BehaviourStateUpdate {
     const oldState = this.state;
     this.state = GenericUtil.deepCopy(state);
     switch (this.getDeviceType()) {
@@ -86,20 +86,38 @@ export class BehaviourWrapper implements DeviceBehaviourSupport {
       case "DIMMABLE":
         return (state.on && state.bri != oldState.bri) ? {
           type: "DIMMING",
-          value: this.state.bri /  PERCENTAGE_CONVERSION_VALUE
+          value: Math.round(state.bri / PERCENTAGE_CONVERSION_VALUE)
         } : (state.on) ? {type: "SWITCH", value: true} : {type: "SWITCH", value: false}
       case "COLORABLE":
-        return ((state.on && state.bri != oldState.bri)) ? {
-          type: "COLOR",
-          brightness: this.state.bri /  PERCENTAGE_CONVERSION_VALUE,
-          hue: this.state.hue / HUE_CONVERSION_VALUE ,
-          saturation: this.state.sat /  PERCENTAGE_CONVERSION_VALUE
-        } : (state.on) ? {type: "SWITCH", value: true} : {type: "SWITCH", value: false}
+        if (state.on) {
+          if (state.ct !== oldState.ct) {
+            return {
+              type: "COLOR_TEMPERATURE",
+              brightness: Math.round(state.bri / PERCENTAGE_CONVERSION_VALUE),
+              temperature: lightUtil.convertTemperature(state.ct),
+            }
+          }
+          else if (state.bri !== oldState.bri || state.hue !== oldState.hue || state.sat !== oldState.sat) {
+            return {
+              type: "COLOR",
+              brightness: Math.round(state.bri / PERCENTAGE_CONVERSION_VALUE),
+              hue: Math.round(state.hue / HUE_CONVERSION_VALUE),
+              saturation: Math.round(state.sat / PERCENTAGE_CONVERSION_VALUE)
+            }
+          }
+          else {
+            return {type: "SWITCH", value: true}
+          }
+        }
+        else {
+          return {type: "SWITCH", value: false};
+        }
+
       case "COLORABLE_TEMPERATURE":
-        return ((state.on && state.bri != oldState.bri)) ? {
+        return ((state.on && (state.bri != oldState.bri || state.ct != oldState.ct))) ? {
           type: "COLOR_TEMPERATURE",
-          brightness: this.state.bri /  PERCENTAGE_CONVERSION_VALUE,
-          temperature: lightUtil.convertTemperature(this.light.getState().ct),
+          brightness: Math.round(state.bri / PERCENTAGE_CONVERSION_VALUE),
+          temperature: lightUtil.convertTemperature(state.ct),
         } : (state.on) ? {type: "SWITCH", value: true} : {type: "SWITCH", value: false}
     }
   }
@@ -109,18 +127,18 @@ export class BehaviourWrapper implements DeviceBehaviourSupport {
       case "SWITCH":
         return {on: state.value}
       case "DIMMING":
-        return (state.value === 0) ? {on: false} : {on: true, bri: state.value * PERCENTAGE_CONVERSION_VALUE}
+        return (state.value === 0) ? {on: false} : {on: true, bri: Math.round(state.value * PERCENTAGE_CONVERSION_VALUE)}
       case "COLOR":
         return (state.brightness === 0) ? {on: false} : {
           on: true,
-          bri: state.brightness * PERCENTAGE_CONVERSION_VALUE,
-          sat: state.saturation * PERCENTAGE_CONVERSION_VALUE,
-          hue: state.hue * HUE_CONVERSION_VALUE
+          bri: Math.round(state.brightness * PERCENTAGE_CONVERSION_VALUE),
+          sat: Math.round(state.saturation * PERCENTAGE_CONVERSION_VALUE),
+          hue: Math.round(state.hue * HUE_CONVERSION_VALUE)
         }
       case "COLOR_TEMPERATURE":
         return (state.brightness === 0) ? {on: false} : {
           on: true,
-          bri: state.brightness * PERCENTAGE_CONVERSION_VALUE,
+          bri: Math.round(state.brightness * PERCENTAGE_CONVERSION_VALUE),
           ct: lightUtil.convertTemperature(state.temperature),
         }
     }

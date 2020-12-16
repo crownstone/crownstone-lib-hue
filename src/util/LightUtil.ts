@@ -65,7 +65,7 @@ export const lightUtil = {
    * @param temperature
    */
   convertTemperature(temperature: number): number {
-    return Math.floor(1000000 / temperature);
+    return Math.round(1000000 / temperature);
   },
   HSVtoRGB(color: { hue: number, brightness: number, saturation: number }) {
 
@@ -107,27 +107,6 @@ export const lightUtil = {
     let y = Y / (X + Y + Z);
     return [x, y]
   },
-  //
-  // xyToRGB(xy:[number,number],brightness):[number,number,number]{
-  //   let x = xy[0]; // the given x value
-  //   let y = xy[1]; // the given y value
-  //   let z = 1.0 - x - y;
-  //   let Y = brightness; // The given brightness value
-  //   let X = (Y / y) * x;
-  //   let Z = (Y / y) * z;
-  //
-  //   let r =  X * 1.656492 - Y * 0.354851 - Z * 0.255038;
-  //   let g = -X * 0.707196 + Y * 1.655397 + Z * 0.036152;
-  //   let b =  X * 0.051713 - Y * 0.121364 + Z * 1.011530;
-  //
-  //
-  //   r = r <= 0.0031308 ? 12.92 * r : (1.0 + 0.055) * Math.pow(r, (1.0 / 2.4)) - 0.055;
-  //   g = g <= 0.0031308 ? 12.92 * g : (1.0 + 0.055) * Math.pow(g, (1.0 / 2.4)) - 0.055;
-  //   b = b <= 0.0031308 ? 12.92 * b : (1.0 + 0.055) * Math.pow(b, (1.0 / 2.4)) - 0.055;
-  //   return [r,g,b];
-  // },
-
-
   /** Calculates the supposed value based a point in time.
    * Can be used for Brightness and Saturation
    * Based on a linear transition.

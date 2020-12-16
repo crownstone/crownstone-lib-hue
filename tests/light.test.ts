@@ -110,14 +110,16 @@ describe('Light', () => {
     await light.update({
       state: {
         on: true,
-        bri: 254
+        bri: 254,
+        reachable:true
       }
     });
     expect(light.getLastSentState().bri).toBe(140)
     await light.update({
       state: {
         on: true,
-        bri: 254
+        bri: 254,
+        reachable:true
       }
     });
     expect(light.getLastSentState().bri).toBe(254)
@@ -172,5 +174,7 @@ describe('Light', () => {
     await light.update({state: {on: true, bri: 178}});
     expect(eventEmitted).toBe(true);
   })
+
+
 
 })

@@ -1,5 +1,5 @@
-import {CrownstoneHue} from "../dist/src"
-import {eventBus} from "../dist/src"
+import {CrownstoneHue,eventBus} from "../dist/src"
+// import {CrownstoneHue,eventBus} from "crownstone-lib-hue"
 
 const crownstoneHue = new CrownstoneHue();
 

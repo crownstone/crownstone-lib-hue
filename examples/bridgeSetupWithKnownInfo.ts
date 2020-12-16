@@ -1,4 +1,6 @@
-import {CrownstoneHue} from "../dist/src" 
+import {CrownstoneHue} from "../dist/src"
+// import {CrownstoneHue} from "crownstone-lib-hue"
+
 const crownstoneHue = new CrownstoneHue();
 
 async function setupBridge(): Promise<void> {

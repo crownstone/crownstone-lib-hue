@@ -80,6 +80,7 @@ await bridge.startPolling();
 ```
 This will poll the Hue bridge for all light info every 500ms and sends it to the lights.
 
+When done, call ``crownstoneHue.stop()``, this will stop all the polling.
 For more information, see [CrownstoneHue](/documentation/CrownstoneHue.md), [Bridge](/documentation/Bridge.md) and [Light](/documentation/Light.md)
 
 All together:

@@ -1,8 +1,7 @@
 # Crownstone Hue module
 This is module incorporates the Philips Hue Bridges and Lights and is compatible to send info to the Crownstone Hue Behaviour Aggregator.
-# Work in Progress
-Module is still a W.I.P., thus imports aren't correctly specified yet and some parts are prone to change.
 
+Note that linking of new lights with the Bridge should be done by the Hue App or any other 3rd party app you use.
 ## Documentation
 ### Overview 
  - [Crownstone Hue](/documentation/CrownstoneHue.md) 

@@ -54,15 +54,16 @@ If any of the keys are missing or undefined, it will use a null on the creation 
 
 The most important parts of the format are the username, bridge id and ip address as the bridge object relies on these and will attempt to find them itself if any or a combination of those are missing.
 When there is/are...
- - No username: The bridge's linking procedure will be started and the physical
+ - Username present: The bridge will be initialized.
+ - No username present: The bridge's linking procedure has to be started, press the physical link button and call `await bridge.init()`
    link button has to be pressed. If not done, the bridge will throw an error with ``errorCode`` `406`. 
-  - No ip address: The bridge's (re)discovery procedure will be started and it tries to find an ip address linked to the bridge id.
-  - No bridge id: The bridge has 1 attempt to find the bridge id with the given ip address, in case of failure: the bridge throws an `errorCode` `408`.
-  - No bridge id and no ip address, the function will throw `errorCode` `413`, because it cannot initialize without both.
-  - The bridge corresponding the bridge id given is already configured,  the function will throw `errorCode` `410`.
-  - The bridge corresponding the bridge ip address given is already configured,  the function will throw `errorCode` `411`.
+ - No ip address: The bridge's (re)discovery procedure will be started and it tries to find an ip address linked to the bridge id.
+ - No bridge id: The bridge has 1 attempt to find the bridge id with the given ip address, in case of failure: the bridge throws an `errorCode` `408`.
+ - No bridge id and no ip address, the function will throw `errorCode` `413`, because it cannot initialize without both.
+ - The bridge corresponding the bridge id given is already configured,  the function will throw `errorCode` `410`.
+ - The bridge corresponding the bridge ip address given is already configured,  the function will throw `errorCode` `411`.
 
-On a successful initialization it returns the Bridge object.
+Afterwards returns the Bridge object.
 
  
 

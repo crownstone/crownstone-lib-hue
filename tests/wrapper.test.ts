@@ -1,4 +1,4 @@
-import {BehaviourWrapper} from "../src";
+import {BehaviourWrapper, Light} from "../src";
 
 const fakeDimLight = {
   getState: (() => {
@@ -45,31 +45,30 @@ const fakeSwitchLight = {
   }),
   setState: ((state) => {
   }),
-  setStateUpdateCallback: ((cb) => {
-  })
+  setStateUpdateCallback: ((cb) => {})
 }
 
 describe('Wrapper functions', () => {
   test('Device types', () => {
-    const switchWrapper = new BehaviourWrapper(fakeSwitchLight);
+    const switchWrapper = new BehaviourWrapper(<Light>fakeSwitchLight);
     expect(switchWrapper.getDeviceType()).toBe("SWITCHABLE")
-    const dimWrapper = new BehaviourWrapper(fakeDimLight);
+    const dimWrapper = new BehaviourWrapper(<Light>fakeDimLight);
     expect(dimWrapper.getDeviceType()).toBe("DIMMABLE")
-    const colorWrapper = new BehaviourWrapper(fakeColorLight);
+    const colorWrapper = new BehaviourWrapper(<Light>fakeColorLight);
     expect(colorWrapper.getDeviceType()).toBe("COLORABLE")
-    const temperatureWrapper = new BehaviourWrapper(fakeTempLight);
+    const temperatureWrapper = new BehaviourWrapper(<Light>fakeTempLight);
     expect(temperatureWrapper.getDeviceType()).toBe("COLORABLE_TEMPERATURE")
 
   })
 
   describe('Conversion Hue to Behaviour Update Command', () => {
     test('Switchable', () => {
-      const switchWrapper = new BehaviourWrapper(fakeSwitchLight);
+      const switchWrapper = new BehaviourWrapper(<Light>fakeSwitchLight);
       expect(switchWrapper._convertToBehaviourFormat({on: true})).toStrictEqual({type: "SWITCH", value: true});
       expect(switchWrapper._convertToBehaviourFormat({on: false})).toStrictEqual({type: "SWITCH", value: false});
     })
     test('Dimmable', () => {
-      const dimmingWrapper = new BehaviourWrapper(fakeDimLight);
+      const dimmingWrapper = new BehaviourWrapper(<Light>fakeDimLight);
       expect(dimmingWrapper._convertToBehaviourFormat({on: false, bri: 1})).toStrictEqual({
         type: "SWITCH",
         value: false
@@ -84,7 +83,7 @@ describe('Wrapper functions', () => {
       });
     })
     test('Colorable', () => {
-      const colorWrapper = new BehaviourWrapper(fakeColorLight);
+      const colorWrapper = new BehaviourWrapper(<Light>fakeColorLight);
       expect(colorWrapper._convertToBehaviourFormat({
         on: false,
         bri: 1,
@@ -129,7 +128,7 @@ describe('Wrapper functions', () => {
       })).toStrictEqual({type: "COLOR_TEMPERATURE", brightness: 80, temperature: 6536});
     })
     test('Colorable temperature', () => {
-      const temperatureWrapper = new BehaviourWrapper(fakeTempLight);
+      const temperatureWrapper = new BehaviourWrapper(<Light>fakeTempLight);
       expect(temperatureWrapper._convertToBehaviourFormat({
         on: true,
         bri: 203,
@@ -149,7 +148,7 @@ describe('Wrapper functions', () => {
 
 
   describe('Conversion Behaviour update to Hue', () => {
-    const wrapper = new BehaviourWrapper(fakeColorLight);
+    const wrapper = new BehaviourWrapper(<Light>fakeColorLight);
     test('Switchable', () => {
       expect(wrapper._convertToHue({type: "SWITCH", value: true})).toStrictEqual({on: true});
       expect(wrapper._convertToHue({type: "SWITCH", value: false})).toStrictEqual({on: false});
@@ -185,20 +184,20 @@ describe('Wrapper functions', () => {
 
   describe('Device states', () => {
     test('Switchable', () => {
-      const wrapper = new BehaviourWrapper(fakeSwitchLight);
+      const wrapper = new BehaviourWrapper(<Light>fakeSwitchLight);
       expect(wrapper.getState()).toStrictEqual({type:"SWITCHABLE",on: true});
     })
     test('Dimmable', () => {
-      const wrapper = new BehaviourWrapper(fakeDimLight);
+      const wrapper = new BehaviourWrapper(<Light>fakeDimLight);
       expect(wrapper.getState()).toStrictEqual({type:"DIMMABLE",on: true, brightness:100});
     })
     test('Colorable', () => {
-      const wrapper = new BehaviourWrapper(fakeColorLight);
+      const wrapper = new BehaviourWrapper(<Light>fakeColorLight);
       expect(wrapper.getState()).toStrictEqual({type:"COLORABLE",on: true, brightness:100,hue:139,saturation:100,temperature:6494});
     })
 
     test('Colorable temperature', () => {
-      const wrapper = new BehaviourWrapper(fakeTempLight);
+      const wrapper = new BehaviourWrapper(<Light>fakeTempLight);
       expect(wrapper.getState()).toStrictEqual({type:"COLORABLE_TEMPERATURE",on: true, brightness:100,temperature:6494});
     })
   })

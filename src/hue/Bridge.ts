@@ -243,7 +243,7 @@ export class Bridge {
       return;
     }
     for (const lightId of Object.keys(bridgeConfig.lights)) {
-      if (this.initialized) {
+      if (!this.initialized) {
         this._lightsConnected[bridgeConfig.lights[lightId].uniqueid] = {
           name: bridgeConfig.lights[lightId].name,
           id: bridgeConfig.lights[lightId].id

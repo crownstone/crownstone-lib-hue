@@ -63,13 +63,7 @@ export class CrownstoneHue {
   /**
    * Adds a light to the bridge.
    *
-   * @remarks
-   * id refers to the id of the light on the bridge and NOT the uniqueId of a light.
-   * Gets info of the light from Bridge and creates a Light object and pushes it to the list.
-   *
-   *
-   * @param bridgeId - The id of the bridge of which the light have to be added to.
-   * @param idOnBridge - The id of the light on the bridge.
+   * @param data - Accepts a Light object or a LightInitFormat
    */
   async addLight(data: LightInitFormat | Light): Promise<Light> {
     for (const bridge of this.bridges) {

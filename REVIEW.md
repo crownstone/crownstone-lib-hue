@@ -24,3 +24,10 @@ Try to get the dist folder not to have the root /src. I've done this by adding t
 This is a little cleaner because now the dist folder looks like something you can distribute.
 
 Updated package json to update license. Feel free to add your name as author!
+
+## Documentation:
+Multiple getters in light.md. 
+
+Try to use more large headers to improve the documentation structure. The headers (####) are too small compared to the content, making it harder to read. Basically, subract a # everywhere :p
+
+Take the latest changes regarding the light state into account with the rest of the methods getting a state.

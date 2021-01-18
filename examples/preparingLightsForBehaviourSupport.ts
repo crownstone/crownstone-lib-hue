@@ -1,4 +1,4 @@
-import {CrownstoneHue,BehaviourWrapper} from "../dist/src"
+import {CrownstoneHue,BehaviourWrapper} from "../dist"
 // import {CrownstoneHue,BehaviourWrapper} from "crownstone-lib-hue"
 const crownstoneHue = new CrownstoneHue();
 

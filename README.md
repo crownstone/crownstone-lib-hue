@@ -92,7 +92,6 @@ bridge.init();
 const lights = await bridge.getAllLightsFromBridge();
 const light = await crownstoneHue.addLight(Object.values(lights)[0]);
 await bridge.startPolling();
-
 ```
 
 

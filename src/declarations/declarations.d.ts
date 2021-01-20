@@ -48,21 +48,6 @@ interface BridgeFormat {
 
 type EventUnsubscriber = () => void
 
-interface BridgeInfo {
-  name: string;
-  username: string;
-  clientKey: string;
-  macAddress: string;
-  ipAddress: string;
-  bridgeId: string;
-  lights: BridgeLightInfo;
-}
-
-interface BridgeLightInfo {
-  uniqueId: string,
-  id: number,
-  name: string;
-}
 
 interface LightInfo {
   name: string
@@ -70,9 +55,10 @@ interface LightInfo {
   state: HueFullState,
   bridgeId: string,
   id: number,
-  supportedStates: {},
-  capabilities: [],
+  capabilities: { control: object },
+  supportedStates: string[],
   lastUpdate: number
+  type:LightType
 }
 
 interface FailedConnection {
@@ -100,17 +86,14 @@ interface LightInitialization {
   type:LightType
 }
 
-interface LightCreation{
+interface HueLightData{
   name: string,
   uniqueid: string,
   state: HueFullState,
   id: number,
-  bridgeId: string,
-  capabilities: { control: object },
-  getSupportedStates(): string[];
-  api: any,
+  capabilities: {control:{}},
+  getSupportedStates(): string[],
   type:LightType
-
 }
 
 
@@ -123,14 +106,18 @@ interface LightInitFormat extends LightConfig {
   bridgeId: string;
 }
 
-interface LightCheckFormat{
-  uniqueid: string,
-  id: number,
-  name: string
+type LightStateData = LightStateDataActiveTransition | LightStateDataInActiveTransition
+
+interface LightStateDataInActiveTransition{
+  transition : {active: false}
+  currentState: HueFullState
 }
 
+interface LightStateDataActiveTransition{
+  transition : {active: true, data:{from:HueFullState,to:HueFullState,transitiontime:number}, progress: number}
+  currentState: HueFullState
+}
 
-interface connectedLightsOnBridge { [uniqueId: string]: { name: string, id: number } }
 
 type StateEqualCheckVariables = "SEND_STATE_UPDATE_NEXT_EQUAL" | "STATE_NOT_EQUAL" | "STATE_UPDATE_SENT";
 

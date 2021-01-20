@@ -27,7 +27,7 @@ describe('Light', () => {
       },type: "Dimmable light", id: 0, bridgeId: "aaccdffee22f", capabilities: {}, supportedStates: [], api: mockApi
     })
     await light.renewState();
-    expect(light.getState()).toStrictEqual(fakeState)
+    expect(light.getCurrentState()).toStrictEqual(fakeState)
   })
   test('Renew state, same state', async () => {
     const light = new Light({
@@ -40,7 +40,7 @@ describe('Light', () => {
       },type: "Dimmable light", id: 0, bridgeId: "aaccdffee22f", capabilities: {}, supportedStates: [], api: mockApi
     })
     await light.renewState();
-    expect(light.getState()).toStrictEqual(fakeState)
+    expect(light.getCurrentState()).toStrictEqual(fakeState)
   })
 
   test('setState, above max', async () => {
@@ -141,8 +141,31 @@ describe('Light', () => {
     await light.setState({bri: 254, transitiontime: 600});
     Date.now = jest.fn(() => Date.parse(new Date(2020, 9, 4, 13, 20, 30).toString()));
     light._stateNotEqualCount = 4;
-    await light.update({state: {on: true, bri: 178}});
-    expect(light.getState().bri).toBe(178)
+    await light.update({state: {on: true, bri: 178,reachable:true}});
+    expect(light.getCurrentState().bri).toBe(178)
+  })
+
+  test('Transition check', async () =>{
+    Date.now = jest.fn(() => Date.parse(new Date(2020, 9, 4, 13, 20, 10).toString()));
+    const light = new Light({
+      name: "Fake light", uniqueId: "1234ABCD", state: {
+        "on": true,
+        "bri": 140,
+        "alert": "select",
+        "mode": "homeautomation",
+        "reachable": true
+      },
+      type: "Dimmable light", id: 0, bridgeId: "aaccdffee22f", capabilities: {}, supportedStates: [], api: mockApi
+    })
+    await light.setState({bri: 254, transitiontime: 60});
+    expect(light.inTransition).toBe(true);
+    Date.now = jest.fn(() => Date.parse(new Date(2020, 9, 4, 13, 21, 10).toString()));
+    await light.update({state: {on: true, bri: 254,reachable:true}});
+    expect(light.inTransition).toBe(true);
+    Date.now = jest.fn(() => Date.parse(new Date(2020, 9, 4, 13, 21, 31).toString()));
+    await light.update({state: {on: true, bri: 254,reachable:true}});
+    expect(light.inTransition).toBe(false);
+
   })
 
   test('Light state change update',async ()=>{
@@ -171,7 +194,7 @@ describe('Light', () => {
       eventEmitted = true;
       })
 
-    await light.update({state: {on: true, bri: 178}});
+    await light.update({state: {on: true, bri: 178,reachable:true}});
     expect(eventEmitted).toBe(true);
   })
 

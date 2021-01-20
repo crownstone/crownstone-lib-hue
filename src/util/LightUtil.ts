@@ -138,24 +138,26 @@ export const lightUtil = {
    * @param toValue
    * @param transitionTime
    * @param transitionStartedAt
+   * @param max
+   * @param middle
    */
-  calculateCurrentHue(fromValue, toValue, transitionTime, transitionStartedAt) {
+  calculateLinearWrapped(fromValue, toValue, transitionTime, transitionStartedAt,max,middle) {
     const timePassed = Date.now() - transitionStartedAt
 
     let dx = Math.abs(fromValue-toValue)
 
     // backwards
-    if(dx > 32768){
-      dx = 65535 - dx
+    if(dx > middle){
+      dx = max - dx
       if (fromValue < toValue) {
         const huePerMs = dx / (transitionTime * 100)
         const result = fromValue - (timePassed * huePerMs)
-        return (result < 0)? (65535) - Math.abs(result): result
+        return (result < 0)? (max) - Math.abs(result): result
       }
       else if (fromValue > toValue) {
         const huePerMs = dx / (transitionTime * 100)
         const result = fromValue + (timePassed * huePerMs)
-        return (result > 65535)? Math.abs(result) - 65535: result
+        return (result > max)? Math.abs(result) - max: result
 
       }
     } else {

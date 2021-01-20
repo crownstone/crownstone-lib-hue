@@ -7,8 +7,11 @@
    - [Constructing](#constructing) 
    - [Polling/Renew state](#pollingrenew-state)
    - [Setting a new light state](#setting-a-new-light-state)
-   - [Retrieving a state](#retrieving-a-state)
-   - [Setting the callback for a lightstate change](#settings-the-callback-for-a-lightstate-change)
+   - [Light types and state types](#light-types-and-state-types)
+   - [Retrieving a state](#retrieving-a-state) 
+     - [Current state](#Current-state) 
+     - [Unpredicted / Transition completed states](#unpredicted--transition-completed-states) 
+     - [Obtaining a state manually](#obtaining-a-state-manually)  
    - [Getters](#getters) 
  - [Behaviour Wrapper](/documentation/BehaviourWrapper.md)
  - [Errors](/documentation/Errors.md)
@@ -66,6 +69,8 @@ If the polling of a Bridge is not activated, you can manually poll a single ligh
 
 In both instances it gets the latest light state of the actual Philips Hue Light and updates the Light object's state.
 
+Note that the `renewState()` method forces a callback if the obtained state is not equal with the current known state.
+
 See [Retrieving a state](#retrieving-a-state) for information about obtaining this state information.
 
 
@@ -94,6 +99,7 @@ When a value is exceeding the maximum or minimum values of a field, the maximum 
 
 When a light is unreachable it will ignore state updates.
 
+When using xy, a light has a certain color gamut it supports, anything outside this range will be compensated by the Hue light.
  
 **Example:**
 
@@ -154,7 +160,7 @@ A light of type ``Color temperature light`` has the following state:
 There are two different state updates passed by the light object: the current light state and 
 the state after a transition that is started by the light object or when an unpredicted state is received.
 
-Note: Depending on the type of light, the states can vary in types.
+Note: Depending on the type of light, the states can vary in the amount of parameters.
 
 #### Current state
 On every state difference including reachability changes, an event is send out. This event has a data object with a format as: 
@@ -167,6 +173,7 @@ On every state difference including reachability changes, an event is send out. 
 To subscribe to this event use: ``eventBus.subscribe("onLightStateChange",callback)``  
 `uniqueId` represents the `uniqueId` of the Light object.
 
+
 #### Unpredicted / Transition completed states
 To prevent unnecessary state updates being send out, as in state updates that are sent during a transition, a callback can be set for when a state transition is completed or when there is an unpredicted state.
 This is done by calling:
@@ -176,19 +183,20 @@ light.setStateUpdateCallback(callback)
 The callback will pass data of type `HueFullState`.
 
 In the module a callback to the aggregator is used for passing the new state. 
-
-### Setting the callback for a light state change
-To set the callback for when there is a light state change, call: 
-`light.setStateUpdateCallback(callback)`
-
-In the module a callback to the aggregator is used, passing the new state. 
-
-#### Getters
+ 
+#### Obtaining a state manually
 To get a state manually, you can use one of the following getters:
-``getState():HueFullState`` - Returns the last known state.
 
-``getLastSentState():HueFullState`` - Returns the state that is sent to a callback.  
+``getState()`` - Returns the current state in the following formats, if there is no state transition: `{transition: {active: false},state:HueFullState}`
+If there is an active transition: `{transition:{active:true,data:{from:HueLightState,to:HueLightState,speed:number},progess:number},state:HueFullState}`
 
+``getCurrentState():HueFullState`` - Returns the last known state, updated by polling the bridge. 
+
+``getLastSentState():HueFullState`` - Returns the last state that is sent to a callback.  
+ 
+``getTransitionToState():HueLightState`` - Returns the last state that the light had to transition to, when a setState command is used or null when it isn't used yet.
+
+``getTransitionFromState():HueLightState`` - Returns the last state that the light had to transition from, when a setState command is used, or null when it isn't used yet.
 
 HueFullState Format:
 ```
@@ -207,7 +215,23 @@ HueFullState Format:
   }
 ```
 
+HueLightState Format:
+```
+{
+  on: boolean, 
+  bri?: number,  
+  hue?: number,  
+  sat?: number,  
+  xy?: [number, number],  
+  ct?: number,     
+  }
+```
+ 
+
+
 ### Getters
+The remaining functions for obtaining information are listed below:
+
 `isReachable():boolean` - Returns if the light is reachable or not. (Might have a slight delay as it depends on actual Bridge providing this data after a poll) 
 
 `getInfo():lightInfo` - Returns `name`, `uniqueId`, current state as `state`, `type`, `bridgeId`, `id`, `supportedStates`, `capabilities` and `lastUpdate`   

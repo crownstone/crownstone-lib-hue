@@ -1,7 +1,7 @@
 import {BehaviourWrapper, Light} from "../src";
 
 const fakeDimLight = {
-  getState: (() => {
+  getCurrentState: (() => {
     return {on: true, bri: 254}
   }),
   getType: (() => {
@@ -13,7 +13,7 @@ const fakeDimLight = {
   })
 }
 const fakeColorLight = {
-  getState: (() => {
+  getCurrentState: (() => {
     return {on: true, bri: 254, hue: 25232, sat: 253, xy: [0.5, 0.2], ct: 154}
   }),
   getType: (() => {
@@ -25,7 +25,7 @@ const fakeColorLight = {
   })
 }
 const fakeTempLight = {
-  getState: (() => {
+  getCurrentState: (() => {
     return {on: true, bri: 254, ct: 154}
   }),
   getType: (() => {
@@ -37,7 +37,7 @@ const fakeTempLight = {
   })
 }
 const fakeSwitchLight = {
-  getState: (() => {
+  getCurrentState: (() => {
     return {on: true}
   }),
   getType: (() => {

@@ -5,7 +5,6 @@ export const ERROR_CODES = {
     406: "Link button on Bridge is not pressed.",
     407: "Bridge is not initialized.",
     408: "Bridge has no Bridge Id and thus cannot be rediscovered.",
-    409: "The given light already exists.",
     410: "The given bridge already exists.",
     411: "The given bridge ip address already exists.",
     412: "Something went wrong when trying to configure a light.",
@@ -14,6 +13,7 @@ export const ERROR_CODES = {
     423: "Cannot manipulate light when light is off.",
     424: "Something went wrong with an action call to the Philips Hue Bridge, see description for more information.",
     425: "Given light type is not supported.",
+    426: "Api call is missing extra parameters.",
     888: "Unknown action call to Hue Api.",
     999: "Unknown Error, see description."
 }

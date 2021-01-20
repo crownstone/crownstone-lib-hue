@@ -8,7 +8,7 @@
     "test": "jest"
   },
   "keywords": [],
-  "author": "",
+  "author": "Joey Ouwens",
   "license": "MIT",
   "dependencies": {
     "@types/node-hue-api": "^2.3.1",

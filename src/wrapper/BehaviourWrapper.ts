@@ -10,7 +10,7 @@ export class BehaviourWrapper implements DeviceBehaviourSupport {
 
   constructor(light: Light) {
     this.light = light;
-    this.state = light.getState();
+    this.state = light.getCurrentState();
   }
 
   async receiveStateUpdate(state: BehaviourStateUpdate): Promise<void> {
@@ -47,32 +47,31 @@ export class BehaviourWrapper implements DeviceBehaviourSupport {
         throw new CrownstoneHueError(425)
     }
   }
-
   getState(): DeviceState {
     switch (this.getDeviceType()) {
       case "SWITCHABLE":
-        return {type: "SWITCHABLE", on: this.light.getState().on}
+        return {type: "SWITCHABLE", on: this.light.getCurrentState().on}
       case "DIMMABLE":
         return {
           type: "DIMMABLE",
-          on: this.light.getState().on,
-          brightness: Math.round(this.light.getState().bri / PERCENTAGE_CONVERSION_VALUE)
+          on: this.light.getCurrentState().on,
+          brightness: Math.round(this.light.getCurrentState().bri / PERCENTAGE_CONVERSION_VALUE)
         }
       case "COLORABLE":
         return {
           type: "COLORABLE",
-          on: this.light.getState().on,
-          brightness:  Math.round(this.light.getState().bri / PERCENTAGE_CONVERSION_VALUE),
-          hue:  Math.round(this.light.getState().hue / HUE_CONVERSION_VALUE),
-          saturation:  Math.round(this.light.getState().sat / PERCENTAGE_CONVERSION_VALUE),
-          temperature: lightUtil.convertTemperature(this.light.getState().ct)
+          on: this.light.getCurrentState().on,
+          brightness:  Math.round(this.light.getCurrentState().bri / PERCENTAGE_CONVERSION_VALUE),
+          hue:  Math.round(this.light.getCurrentState().hue / HUE_CONVERSION_VALUE),
+          saturation:  Math.round(this.light.getCurrentState().sat / PERCENTAGE_CONVERSION_VALUE),
+          temperature: lightUtil.convertTemperature(this.light.getCurrentState().ct)
         }
       case "COLORABLE_TEMPERATURE":
         return {
           type: "COLORABLE_TEMPERATURE",
-          on: this.light.getState().on,
-          brightness:  Math.round(this.light.getState().bri / PERCENTAGE_CONVERSION_VALUE),
-          temperature: lightUtil.convertTemperature(this.light.getState().ct),
+          on: this.light.getCurrentState().on,
+          brightness:  Math.round(this.light.getCurrentState().bri / PERCENTAGE_CONVERSION_VALUE),
+          temperature: lightUtil.convertTemperature(this.light.getCurrentState().ct),
         }
     }
   }

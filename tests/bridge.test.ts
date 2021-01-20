@@ -26,6 +26,7 @@ describe("Bridge", () => {
       bridgeId: "ABDCFFFEAKE91"
     })
     await bridge.init();
+    bridge.stopPolling();
     return expect(bridge.authenticated).toBeTruthy();
   })
 
@@ -39,6 +40,8 @@ describe("Bridge", () => {
       bridgeId: ""
     })
     await bridge.init();
+    await bridge.link();
+    bridge.stopPolling();
     return expect(bridge.name).toBe("Philips Hue Fake Bridge");
   })
 
@@ -52,7 +55,8 @@ describe("Bridge", () => {
       bridgeId: "ABDCFFFEAKE91"
     })
     await bridge.init();
-    return expect(bridge.getInfo()).toStrictEqual({
+    bridge.stopPolling();
+    return expect(bridge.getInfo()).toMatchObject({
       name: "Philips Hue Fake Bridge",
       ipAddress: "192.168.178.10",
       macAddress: "AB:DC:FA:KE:91",
@@ -60,39 +64,11 @@ describe("Bridge", () => {
       clientKey: "FakeKey",
       bridgeId: "ABDCFFFEAKE91",
       reconnecting: false,
-      lights: {},
       authenticated: true,
       reachable: true
     });
   });
 
-  test('getAllLightsFromBridge', async () => {
-    const bridge = new Bridge({
-      name: "Philips Hue Fake Bridge",
-      username: "FakeUsername",
-      clientKey: "FakeKey",
-      macAddress: "AB:DC:FA:KE:91",
-      ipAddress: "192.168.178.10",
-      bridgeId: "ABDCFFFEAKE91"
-    })
-    await bridge.init();
-    return bridge.getAllLightsFromBridge().then(lights => expect(Object.values(lights)[0].name).toBe("Light 1"))
-  })
-
-  test('Configure light by Id', async () => {
-    const bridge = new Bridge({
-      name: "Philips Hue Fake Bridge",
-      username: "FakeUsername",
-      clientKey: "FakeKey",
-      macAddress: "AB:DC:FA:KE:91",
-      ipAddress: "192.168.178.10",
-      bridgeId: "ABDCFFFEAKE91"
-    })
-    await bridge.init();
-    await bridge.configureLight({id: 0, uniqueId: "ABCD123"}).then(light => {
-      expect(light.uniqueId).toBe("ABCD123")
-    })
-  })
 
   test('Get all connected lights', async () => {
     const bridge = new Bridge({
@@ -104,8 +80,8 @@ describe("Bridge", () => {
       bridgeId: "ABDCFFFEAKE91"
     })
     await bridge.init();
-    await bridge.populateLights();
-    return expect(Object.keys(bridge.getConnectedLights()).length).toBe(2);
+    bridge.stopPolling();
+    expect(Object.keys(bridge.getLights())).toStrictEqual( ["ABCD123", "XYZ0987" ]);
   })
 
   test('Rediscovery', async () => {
@@ -121,6 +97,7 @@ describe("Bridge", () => {
       bridgeId: "ABDCFFFEAKE91"
     })
     await bridge.init();
+    bridge.stopPolling();
     return expect(bridge.ipAddress).toBe("192.168.178.10");
   })
 
@@ -134,78 +111,10 @@ describe("Bridge", () => {
       bridgeId: "ABDCFFFEAKE91"
     })
     await bridge.init();
-    await bridge.configureLight({id: 0, uniqueId: "ABCD123"})
+    bridge.stopPolling();
     return expect(bridge.getLightById("ABCD123").name).toBe("Light 1")
   })
-  test('Remove light by Id', async () => {
-    const bridge = new Bridge({
-      name: "Philips Hue Fake Bridge",
-      username: "FakeUsername",
-      clientKey: "FakeKey",
-      macAddress: "AB:DC:FA:KE:91",
-      ipAddress: "192.168.178.10",
-      bridgeId: "ABDCFFFEAKE91"
-    })
-    await bridge.init();
-    await bridge.configureLight({id: 0, uniqueId: "ABCD123"})
-    expect(bridge.getLightById("ABCD123").name).toBe("Light 1")
-    await bridge.removeLight("ABCD123");
-    expect(Object.keys(bridge.getConnectedLights()).length).toBe(0);
-  })
-  test('Configure wrong light', async () => {
-    const bridge = new Bridge({
-      name: "Philips Hue Fake Bridge",
-      username: "FakeUsername",
-      clientKey: "FakeKey",
-      macAddress: "AB:DC:FA:KE:91",
-      ipAddress: "192.168.178.10",
-      bridgeId: "ABDCFFFEAKE91"
-    })
-    await bridge.init();
-    try{
-      await bridge.configureLight({id: 0, uniqueId: "ADF"})
-      expect(true).toBe(false) // Fail catch.
-    }catch(e){
-      expect(e.errorCode).toBe(422)
-    }
-  })
 
-  test('Configure wrong light id', async () => {
-    const bridge = new Bridge({
-      name: "Philips Hue Fake Bridge",
-      username: "FakeUsername",
-      clientKey: "FakeKey",
-      macAddress: "AB:DC:FA:KE:91",
-      ipAddress: "192.168.178.10",
-      bridgeId: "ABDCFFFEAKE91"
-    })
-    await bridge.init();
-    await bridge.configureLight({id: 51, uniqueId: "ABCD123"}).then(light => {
-      expect(light.uniqueId).toBe("ABCD123")
-    })
-  })
-
-  test("Bridge catching duplicate lights", async () => {
-    const bridge = new Bridge({
-      name: "Philips Hue Fake Bridge",
-      username: "FakeUsername",
-      clientKey: "FakeKey",
-      macAddress: "AB:DC:FA:KE:91",
-      ipAddress: "192.168.178.10",
-      bridgeId: "ABDCFFFEAKE91"
-    })
-
-    await bridge.init();
-    await bridge.configureLight({id:0, uniqueId:"ABCD123"})
-    try{
-      await bridge.configureLight({id:0, uniqueId:"ABCD123"})
-      expect(true).toBe(false); // Failsafe.
-
-    } catch(e){
-      expect(e.errorCode).toBe(409);
-      expect(e.description).toBe("ABCD123");
-    }
-  })
 
   test("Polling", async () => {
     jest.useFakeTimers();
@@ -219,7 +128,6 @@ describe("Bridge", () => {
     })
     bridge._pollingEvent = jest.fn()
     await bridge.init();
-    bridge.startPolling()
     jest.advanceTimersToNextTimer();
     expect(bridge._pollingEvent).toBeCalledTimes(1);
     bridge.stopPolling()
@@ -261,23 +169,15 @@ describe("Bridge", () => {
         return {}
       })
     })
-    expect(bridge._lightsConnected).toStrictEqual(    {
-        ABCD123: { name: 'Light 1', id: 0 },
-        XYZ0987: { name: 'Light 2', id: 1 }
-      }
-    )
-    bridge.startPolling()
+    expect(Object.keys(bridge.getLights())).toStrictEqual( ["ABCD123", "XYZ0987" ]);
+
     await jest.advanceTimersToNextTimer();
     await flushPromises();
-    expect(bridge._lightsConnected).toStrictEqual(    {
-        ABCD123: { name: 'Light 1', id: 0 },
-        XYZ0987: { name: 'Light 2', id: 1 },
-        QWERTY0987: { name: 'Light 3', id: 2 }
-      }
-    )
+    expect(Object.keys(bridge.getLights())).toStrictEqual( ["ABCD123", "XYZ0987", "QWERTY0987" ]);
     bridge.stopPolling()
     return;
   })
+
 })
 
 

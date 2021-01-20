@@ -24,6 +24,7 @@ describe("Crownstone Hue", () => {
       ipAddress: "192.168.178.10",
       bridgeId: "ABDCFFFEAKE91"
     })
+    crownstoneHue.stop()
     return expect(crownstoneHue.bridges.length).toBe(1);
   })
   test("Crownstone Hue catching duplicate bridges", async () => {
@@ -61,6 +62,7 @@ describe("Crownstone Hue", () => {
     }catch(e){
       expect(e.errorCode).toBe(411)
     }
+    crownstoneHue.stop()
     return expect(crownstoneHue.bridges.length).toBe(1);
   })
 
@@ -90,6 +92,7 @@ describe("Crownstone Hue", () => {
     }catch(e){
       expect(e.errorCode).toBe(413)
     }
+    crownstoneHue.stop()
     return expect(crownstoneHue.bridges.length).toBe(0);
   })
 
@@ -106,82 +109,10 @@ describe("Crownstone Hue", () => {
     })
     expect(crownstoneHue.bridges.length).toBe(1);
     await crownstoneHue.removeBridge("ABDCFFFEAKE91");
+    crownstoneHue.stop()
     return expect(crownstoneHue.bridges.length).toBe(0);
   })
-  test("Crownstone Hue adding lights", async () => {
-    const crownstoneHue = new CrownstoneHue();
-    await crownstoneHue.addBridge({
-      name: "Philips Hue Fake Bridge",
-      username: "FakeUsername",
-      clientKey: "FakeKey",
-      macAddress: "AB:DC:FA:KE:91",
-      ipAddress: "192.168.178.10",
-      bridgeId: "ABDCFFFEAKE91"
-    })
-    await crownstoneHue.addLight({bridgeId:"ABDCFFFEAKE91", id:0, uniqueId:"ABCD123"})
-    return expect(Object.keys(crownstoneHue.getAllConnectedLights()).length).toBe(1);
-  })
-  test("Crownstone Hue catching duplicate lights", async () => {
-    const crownstoneHue = new CrownstoneHue();
-    await crownstoneHue.addBridge({
-      name: "Philips Hue Fake Bridge",
-      username: "FakeUsername",
-      clientKey: "FakeKey",
-      macAddress: "AB:DC:FA:KE:91",
-      ipAddress: "192.168.178.10",
-      bridgeId: "ABDCFFFEAKE91"
-    })
-    await crownstoneHue.addLight({bridgeId:"ABDCFFFEAKE91", id:0, uniqueId:"ABCD123"})
-    try{
-      await crownstoneHue.addLight({bridgeId:"ABDCFFFEAKE91", id:0, uniqueId:"ABCD123"})
-      expect(true).toBe(false); // Failsafe.
 
-    } catch(e){
-      expect(e.errorCode).toBe(409);
-      expect(e.description).toBe("ABCD123");
-    }
-
-    return expect(Object.keys(crownstoneHue.getAllConnectedLights()).length).toBe(1);
-
-  })
-
-  test("Crownstone Hue catching duplicate lights", async () => {
-    const crownstoneHue = new CrownstoneHue();
-    await crownstoneHue.addBridge({
-      name: "Philips Hue Fake Bridge",
-      username: "FakeUsername",
-      clientKey: "FakeKey",
-      macAddress: "AB:DC:FA:KE:91",
-      ipAddress: "192.168.178.10",
-      bridgeId: "ABDCFFFEAKE91"
-    })
-    await crownstoneHue.addLight({bridgeId:"ABDCFFFEAKE91", id:0, uniqueId:"ABCD123"})
-    try{
-      await crownstoneHue.addLight({bridgeId:"ABDCFFFEAKE91", id:0, uniqueId:"ABCD123"})
-      expect(true).toBe(false); // Failsafe.
-
-    } catch(e){
-      expect(e.errorCode).toBe(409);
-      expect(e.description).toBe("ABCD123");
-    }
-    return expect(Object.keys(crownstoneHue.getAllConnectedLights()).length).toBe(1);
-  })
-
-  test("Crownstone Hue removing lights", async () => {
-    const crownstoneHue = new CrownstoneHue();
-    await crownstoneHue.addBridge({
-      name: "Philips Hue Fake Bridge",
-      username: "FakeUsername",
-      clientKey: "FakeKey",
-      macAddress: "AB:DC:FA:KE:91",
-      ipAddress: "192.168.178.10",
-      bridgeId: "ABDCFFFEAKE91"
-    })
-    await crownstoneHue.addLight({bridgeId:"ABDCFFFEAKE91", id:0, uniqueId:"ABCD123"})
-    expect(Object.keys(crownstoneHue.getAllConnectedLights()).length).toBe(1);
-    await crownstoneHue.removeLight("ABCD123")
-    return expect(Object.keys(crownstoneHue.getAllConnectedLights()).length).toBe(0);
-  })
 })
 
 

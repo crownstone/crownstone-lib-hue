@@ -1,8 +1,10 @@
 import {lightUtil} from "../util/LightUtil";
 import {GenericUtil} from "../util/GenericUtil";
 import {eventBus} from "../util/EventBus";
-import {LIGHT_STATE_CHANGE} from "../constants/EventConstants";
+import {LIGHT_NAME_CHANGE, LIGHT_STATE_CHANGE} from "../constants/EventConstants";
 import {CrownstoneHueError} from "..";
+import {HUE_DEFAULT_TRANSITION_TIME, hueStateVariables} from "../constants/HueConstants";
+import exp from "constants";
 
 
 /**
@@ -32,7 +34,7 @@ export class Light {
 
   inTransition: boolean = false;
   _transitionToState: HueLightState = null;
-  _transitionFromState: HueFullState = null;
+  _transitionFromState: HueLightState = null;
   _transitionStartedAt: number = 0;
   _lastTransitionTime: number = 4; // n * 100ms
 
@@ -67,6 +69,7 @@ export class Light {
   update(data): void {
     if ("name" in data && data.name !== this.name) {
       this.name = data.name;
+      eventBus.emit(LIGHT_NAME_CHANGE, JSON.stringify({uniqueId: this.uniqueId, name: this.name}))
     }
     if ("state" in data) {
       this._checkState(data.state);
@@ -147,7 +150,28 @@ export class Light {
     return this.supportedStates;
   }
 
-  getState(): HueFullState {
+  getState(){
+    if(this.inTransition){
+      return {
+        transition: {
+          active: true,
+          data:{
+            from:this.getTransitionFromState(),
+            to:this.getTransitionToState(),
+            speed: this._lastTransitionTime
+            },
+          progress: Math.floor(this._calculateTransitionProgress())
+            },
+        state: this.getCurrentState()
+      }
+    } else {
+      return {
+        transition: {active: false},
+        state: this.getCurrentState()
+      }
+    }
+  }
+  getCurrentState(): HueFullState {
     return <HueFullState>GenericUtil.deepCopy(this._currentLightState);
   }
 
@@ -159,12 +183,41 @@ export class Light {
     return this._transitionToState
   }
 
-  getTransitionFromState(): HueFullState {
+  getTransitionFromState(): HueLightState {
     return this._transitionFromState
   }
 
   getType(): LightType {
     return this._type;
+  }
+
+  /** Returns progression of the current transition in percentages.
+   *
+   */
+  _calculateTransitionProgress():number{
+    if(!this.inTransition){
+      return 100;
+    }
+
+    if("bri" in this._transitionToState &&  this._transitionToState.bri !== this._transitionFromState.bri){
+      return  ((this._currentLightState.bri - this._transitionFromState.bri) * 100) / (this._transitionToState.bri - this._transitionFromState.bri)
+    }
+
+    if("sat" in this._transitionToState && this._transitionToState.sat !== this._transitionFromState.sat){
+      return  ((this._currentLightState.sat - this._transitionFromState.sat) * 100) / (this._transitionToState.sat - this._transitionFromState.sat)
+
+    }
+    if("ct" in this._transitionToState && this._transitionToState.ct !== this._transitionFromState.ct){
+      return  ((this._currentLightState.ct - this._transitionFromState.ct) * 100) / (this._transitionToState.ct - this._transitionFromState.ct)
+    }
+    if("hue" in this._transitionToState && this._transitionToState.hue !== this._transitionFromState.hue){
+      return  ((this._currentLightState.hue - this._transitionFromState.hue) * 100) / (this._transitionToState.hue - this._transitionFromState.hue)
+    }
+    if("xy" in this._transitionToState && this._transitionToState.xy !== this._transitionFromState.xy){
+      return  ((Date.now() - this._transitionStartedAt) * 100) / ((this._transitionStartedAt +(this._lastTransitionTime *100)) - this._transitionStartedAt)
+    }
+
+    return 0
   }
 
   /**
@@ -175,7 +228,6 @@ export class Light {
       return;
     }
     const isEqual = lightUtil.stateEqual(this._currentLightState, newState);
-
 
     if (!isEqual) {
       if (this._retrievedStateIsGivenStateCheck(newState)) {
@@ -201,9 +253,8 @@ export class Light {
    * Time prediction is because sometimes the just set light state is given by the Bridge instead of the light's actual state.
    */
   _inTransitionCheck() {
-    const timePassed = this._transitionStartedAt - Date.now();
-    if ((this.inTransition && lightUtil.stateEqual(this._transitionToState, this._currentLightState) && (timePassed > this._lastTransitionTime * 100))
-      || this.inTransition && timePassed > this._lastTransitionTime + 10 * 100) {
+    const timePassed =  Date.now() - this._transitionStartedAt;
+    if (this.inTransition && lightUtil.stateEqual(this._transitionToState, this._currentLightState) && (timePassed > this._lastTransitionTime * 100)){
       this.inTransition = false;
     }
   }
@@ -236,8 +287,8 @@ export class Light {
           newState[key] = [state[key][0], state[key][1]]
         }
         else {
+          newState[key] = state[key]
         }
-        newState[key] = state[key]
       }
     }
     if (Object.keys(newState).length > 0 && "transitiontime" in state) {
@@ -279,56 +330,64 @@ export class Light {
     this.stateUpdateCallback(this._currentLightState);
     this._stateSentToCallback = GenericUtil.deepCopy(this._currentLightState);
   }
-
-  //Todo naar 5% absoluut op de from to
-  _isStateExpected(): boolean {
+  _isLinearExpected(from:number,to:number,current:number){
+    const offsetValue = Math.abs(from - to) * 0.05
+    const expectedBrightness = lightUtil.calculateCurrentValueLinear(from, to, this._lastTransitionTime, this._transitionStartedAt)
+    const difference = expectedBrightness - current;
+    return (difference <= offsetValue && difference >= -offsetValue);
+  }
+   _isStateExpected(): boolean {
     if (!this.inTransition || !this._transitionToState || !this._transitionFromState) {
       return false;
     }
     if ("bri" in this._transitionToState) {
-      const offsetValue = Math.abs(this._transitionFromState.bri - this._transitionToState.bri) * 0.05
-      const expectedBrightness = lightUtil.calculateCurrentValueLinear(this._transitionFromState.bri, this._transitionToState.bri, this._lastTransitionTime, this._transitionStartedAt)
-      const difference = expectedBrightness - this._currentLightState.bri;
-      if (!(this._transitionToState.bri === 0 && !this._currentLightState.on) || (difference <= offsetValue && difference >= -offsetValue)) {
-        return false
+      if(!this._isLinearExpected(this._transitionFromState.bri,this._transitionToState.bri,this._currentLightState.bri) && (this._transitionToState.bri === 0 && !this._currentLightState.on)){
+        return false;
       }
     }
     if ("sat" in this._transitionToState) {
-      const offsetValue = Math.abs(this._transitionFromState.sat - this._transitionToState.sat) * 0.05
-      const expectedSaturation = lightUtil.calculateCurrentValueLinear(this._transitionFromState.sat, this._transitionToState.sat, this._lastTransitionTime, this._transitionStartedAt)
-      const difference = expectedSaturation - this._currentLightState.sat;
-      if (!(difference <= offsetValue && difference >= -offsetValue)) {
-        return false
+      if(!this._isLinearExpected(this._transitionFromState.sat,this._transitionToState.sat,this._currentLightState.sat)){
+        return false;
       }
     }
     if ("hue" in this._transitionToState) {
       const offsetValue = Math.abs(this._transitionFromState.hue - this._transitionToState.hue) * 0.05
-      const expectedHue = lightUtil.calculateCurrentHue(this._transitionFromState.hue, this._transitionToState.hue, this._lastTransitionTime, this._transitionStartedAt)
+      const expectedHue = lightUtil.calculateLinearWrapped(this._transitionFromState.hue, this._transitionToState.hue, this._lastTransitionTime, this._transitionStartedAt,65535,32768)
       const difference = expectedHue - this._currentLightState.hue;
       if (!(difference <= offsetValue && difference >= -offsetValue)) {
         return false
       }
     }
     if ("ct" in this._transitionToState) {
-      const offsetValue = Math.abs(this._transitionFromState.ct - this._transitionToState.ct) * 0.05
-      const expectedCT = lightUtil.calculateCurrentValueLinear(this._transitionFromState.ct, this._transitionToState.ct, this._lastTransitionTime, this._transitionStartedAt)
-      const difference = expectedCT - this._currentLightState.ct;
-      if (!(difference <= offsetValue && difference >= -offsetValue)) {
-        return false
+      if(!this._isLinearExpected(this._transitionFromState.ct,this._transitionToState.ct,this._currentLightState.ct)){
+        return false;
       }
+
     }
+
     return true;
   }
 
   _updateTransitionState(state: StateUpdate): void {
-    this._lastTransitionTime = state.transitiontime || 4;
-    this._transitionFromState = <HueFullState>GenericUtil.deepCopy(this._currentLightState)
-    if (this._transitionToState === null
-    ) {
+    this._lastTransitionTime = state.transitiontime || HUE_DEFAULT_TRANSITION_TIME;
+    if (this._transitionFromState === null) {
+      this._transitionFromState = {on: true};
+    }
+     Object.keys(this._currentLightState).forEach(key => {
+      if(hueStateVariables[key]){
+        if(key == "xy"){
+          this._transitionFromState["xy"] = [this._currentLightState[key][0],this._currentLightState[key][1]]
+        }else{
+          this._transitionFromState[key] = this._currentLightState[key]
+        }
+      }
+    })
+
+    if (this._transitionToState === null) {
       this._transitionToState = {on: true};
     }
     Object.keys(state).forEach(key => {
-      if (lightUtil.isAllowedStateType(key)) {
+      if (hueStateVariables[key]) {
         this._transitionToState[key] = state[key];
       }
     })

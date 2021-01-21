@@ -184,7 +184,7 @@ bridgeId: string,
 reachable: boolean,
 authenticated: boolean,
 reconnecting: boolean,
-lights: {[uniqueId]:Light}
+lights:  {name: string, id: id, uniqueId: string}[]
 }
 ```
 

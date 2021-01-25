@@ -167,7 +167,7 @@ On every state difference including reachability changes, an event is send out. 
 ```
 {
     uniqueId:string,
-    state:HueFullState}   
+    state:HueFullState   
 }
 ``` 
 To subscribe to this event use: ``eventBus.subscribe("onLightStateChange",callback)``  
@@ -175,7 +175,7 @@ To subscribe to this event use: ``eventBus.subscribe("onLightStateChange",callba
 
 
 #### Unpredicted / Transition completed states
-To prevent unnecessary state updates being send out, as in state updates that are sent during a transition, a callback can be set for when a state transition is completed or when there is an unpredicted state.
+To prevent unnecessary state updates being send out, as in state updates that are sent during a transition, a callback can be set for when a state transition is completed, based on if the state is 2 times equal, or when the light receives 3 times unequal states and these are unpredicted. Unpredicted as in these states are send by another application.
 This is done by calling:
 ```
 light.setStateUpdateCallback(callback)

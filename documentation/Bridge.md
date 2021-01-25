@@ -19,6 +19,7 @@
   - [Getters](#getters)
   - [Remaining functions](#remaining-functions)
 - [Light](/documentation/Light.md)
+- [Behaviour Wrapper](/documentation/BehaviourWrapper.md)
 - [Errors](/documentation/Errors.md)
 - [Event calls](/documentation/EventCalls.md) 
 
@@ -44,10 +45,17 @@ const bridge = new Bridge({
 });
 ```
 
-Several fields may be left empty on constructing, it will try to gather their information on initialization.  
-Note that either `ip address` or `bridge id` have to be set and if the `username` is empty while initializing, the link button should be pressed on the physical bridge.
-
+The most important parts of the format are the username, bridge id and ip address as the bridge object relies on these and will attempt to find them itself if any or a combination of those are missing.
+When there is/are...
+ - Username present: The bridge will be initialized.
+ - No username present: The bridge's linking procedure has to be started, press the physical link button and call `await bridge.link()`
+   If link button is not pressed, the bridge will throw an error with ``errorCode`` `406`. 
+ - No ip address: The bridge's (re)discovery procedure will be started and it tries to find an ip address linked to the bridge id.
+ - No bridge id: The bridge has 1 attempt to find the bridge id with the given ip address, in case of failure: the bridge throws an `errorCode` `408`.
+ - No bridge id and no ip address, the function will throw `errorCode` `413`, because it cannot initialize without both.
+ 
 ### Initialization
+Note that the initialization is done by the CrownstoneHue class upon adding a bridge and this section is only for information purposes.
 
 Before using, the bridge should be initialized else it will throw errors on the usage of the Hue API related parts.
 
@@ -56,68 +64,48 @@ This is done by calling:
 ```
 await bridge.init();
 ```
+If a username was present, see [connecting](#connecting)
+
+If no username is present, an unauthenticated api created.  
+On success `bridge.reachable` is set to `true` and it's ready for linking.
 
 #### Linking
+Upon initialization with an empty username, `await bridge.link()` has to be called.
+Before doing so, the user must press the physical button on the Philips Hue bridge, else an error will be thrown.
 
-Upon initialization with an empty username, `await this.link()` will be called.
-This will create an unauthenticated api session for user creation.  
-
-On success `bridge.reachable` is set to `true` and it's ready for user creation.
-
-##### User creation
-
-After an unauthenticated api session is created, `await this.createNewUser()` is called.
-This attempts to create a user on the physical Philips Hue Bridge with the identifiers set by `APP_NAME` and `DEVICE_NAME` in the [HueConstants.ts](/src/constants/HueConstants.ts). If the link button on the physical bridge is not pressed during this, it will throw an error.
+After an unauthenticated api is created and the linking process is started, `_createUser()` is called.
+This attempts to create a user on the physical Philips Hue Bridge with the identifiers set by `APP_NAME` and `DEVICE_NAME` in the [HueConstants.ts](/src/constants/HueConstants.ts). 
 
 On success, a user is created on the Philips Hue Bridge and the bridge will update itself with the new `username` and `clientkey`.
 
 #### Connecting
 
-If the username is set after linking or upon initialization, the bridge calls `this.connect()`, this attempts to create an authenticated api session.
+If the username is set after linking or upon initialization, the bridge calls `_connect()`, this attempts to create an authenticated api.
 
 On success `bridge.authenticated` and `bridge.reachable` are set to `true` and the bridge object is ready to use.
 
 When the username is wrong or denied by the Philips Hue bridge, it will throw an error.
 
-### Light configuration
-
-To configure a light that is connected to the Philips Bridge, call:
-
-`await bridge.configureLight({id:number,uniqueId:string})` 
-
-`Id` represents the id of the light on the bridge and `uniqueId` represents the light's uniqueId.
-
-On success, it will return an uninitialized Light object.
-
-In case of a wrong id or the uniqueId doesn't match the id used, it attempts to find by uniqueId.
-When light is not found it throws an error. 
-If the bridge has connection issues, it attempts to redo this operation every 10 seconds.
+Afterwards it will obtain the latest bridge information, populate the lights list with all the connected lights and start the polling.
 
 ### Polling
-To obtain the newest state info for the lights, you'll have to poll the Philips Hue Bridge.
-To do this, call:
-```
-bridge.startPolling();
-```
-Every 500ms a request gets send to the Philips Hue Bridge, this will return the latest light info and passes the data to its respective lights.
-If a new light is found on the Philips Hue Bridge, an event named `"newLightOnBridge"` is emitted with a stringified data object: `{uniqueId: string, id: number, name:string,bridgeId: string}` 
+To obtain the newest state info for the lights, the bridge polls the Philips Hue Api.
+Every 1000ms a request is send to the Philips Hue Bridge, this will return the latest light info and passes the data to its respective lights.
+If a new light is found on the Philips Hue Bridge, an event named `"newLightOnBridge"` is emitted with a stringified data object: `{uniqueId: string, id: number, name:string,bridgeId: string}`.
+This light is also added to the lights list and ready for use.
 
-To stop the polling, call:
-
+If you have to stop the polling, you can call:
 ```
 bridge.stopPolling();
 ```
 
-### Removing a light
-
-To remove the light from the Bridge object, call:
-
-`bridge.removeLight(uniqueLightId)`
-
-This only removes the light from the object's light list, not from the actual Philips Hue Bridge.
+To start the polling again, call:
+```
+bridge.startPolling();
+```
 
 ### Update
-To update the values of the bridge, call:
+This method is mainly used by the bridge itself, but if you have to update the values of the bridge, call:
 
 `bridge.update(values,onlyUpdate?)`
 
@@ -131,13 +119,14 @@ To update the values of the bridge, call:
 "clientKey": string,
 "macAddress": string,
 "bridgeId": string,
-"reachable": string,
-"authenticated": string,
-"reconnecting": string
+"reachable": boolean,
+"isPolling": boolean,
+"authenticated": boolean,
+"reconnecting": boolean
 }
 ```
 
-`onlyUpdate` is a boolean that is per default false. Meaning that `this.save()` will be called after the fields are updated, with the only exception of when only fields are updated that does not need to be saved (reachable, authenticated and reconnecting).
+`onlyUpdate` is a boolean that is per default false. Meaning that `this.save()` will be called after the fields are updated, with the only exception of when only fields are updated that does not need to be saved (reachable,isPolling, authenticated and reconnecting).
 
 **Example:**
 
@@ -149,7 +138,7 @@ To save the Bridge's current state, call:
 
 `bridge.save()`
 
-This will emit an event with topic `"onBridgeUpdate"` and a data object formated as:
+This will emit an event with topic `"onBridgeUpdate"` and a stringified data object formatted as:
 
 ```
 {
@@ -167,9 +156,10 @@ lights: {name: string, id: number, uniqueId: string}[]
 
 If the Philips Hue bridge has connection issues, such as it is not reachable or the ip address is set wrong, the bridge object attempts to rediscover the bridge. Note that if the bridge id is not set, the rediscovery will not work and an error is thrown.
 
-During the period of rediscovering, `bridge.reachable` is set to `false`, `bridge.reconnecting` is set to `true` and all api calls will be ignored and returned with `{"hadConnectionFailure":true}` . The bridge will attempt to rediscover indefinitely.
+During the period of rediscovering, `bridge.reachable` is set to `false`, `bridge.reconnecting` is set to `true` and all api calls will be ignored and returned with `{"hadConnectionFailure":true}` . 
+The bridge will attempt to rediscover indefinitely. An event is send out with topic `"onBridgeConnectionLost"` and as data, the ``bridgeId``.
 
-After a successfull discovery it updates the ipaddress to the new ipaddress, `bridge.reachable` is set to `true`, `bridge.reconnecting` is set to `false` and it will return one more time `{"hadConnectionFailure":true}`.
+After a successful discovery it updates the ipaddress to the new ipaddress, `bridge.reachable` is set to `true`, `bridge.reconnecting` is set to `false`, it will return one more time `{"hadConnectionFailure":true}` and an event is send out with topic `"onBridgeConnectionReestablished"` and as data, the ``bridgeId``.
 
 ### Getters
 
@@ -177,7 +167,7 @@ After a successfull discovery it updates the ipaddress to the new ipaddress, `br
 
 `isReachable():boolean` returns a boolean representing if the bridge is reachable or not.
 
-`getConnectedLights(): Light[]` Returns an array with all lights from the bridge's configured light list.
+`getLights(): {[uniqueId]:Light}` Returns all lights that are connected to the bridge.
 
 `isReconnecting():boolean` returns a boolean representing if the bridge is reconnecting or not.
 
@@ -194,13 +184,9 @@ bridgeId: string,
 reachable: boolean,
 authenticated: boolean,
 reconnecting: boolean,
-lights: Light[]
+lights:  {name: string, id: id, uniqueId: string}[]
 }
 ```
 
 ### Remaining functions
-`updateBridgeInfo()` - Updates the bridge info with the new info from the Philips Hue Bridge. (Most likely name and new lights, unless macAddress and/or bridgeId are missing as well);
-
-`getAllLightsFromBridge():Promise<Light[]>` Returns an array with all Light objects that are retrieved from the actual Philips Hue Bridge, corresponding all Hue Lights connected to the Philips Hue Bridge. These Light objects aren't initialized.
-
-`populateLights():Promise<void>` Add all Philips Hue Lights from the Philips Hue Bridge to the bridge's light list. These Light objects aren't initialized.
+`updateBridgeInfo()` - Updates the bridge info with the new info from the Philips Hue Bridge. (Most likely new name, unless macAddress and/or bridgeId are missing as well);

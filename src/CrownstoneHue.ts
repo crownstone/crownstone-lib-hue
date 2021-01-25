@@ -1,6 +1,7 @@
 import {Bridge} from "./hue/Bridge";
 import {CrownstoneHueError} from "./util/CrownstoneHueError";
 import {Light} from "./hue/Light";
+import {eventBus} from "./util/EventBus";
 
 /**
  * CrownstoneHue object
@@ -14,6 +15,14 @@ import {Light} from "./hue/Light";
 export class CrownstoneHue {
   bridges: Bridge[] = [];
 
+
+  /** Adds a given Bridge to the Crownstone Hue object
+   * If username is given, starts initialization.
+   * If username is not given, use bridge.link();
+   * @param bridgeData
+   *
+   * @returns Bridge object
+   */
   async addBridge(bridgeData: BridgeInitialization): Promise<Bridge> {
     if ((bridgeData.bridgeId == null && bridgeData.ipAddress == null) || (bridgeData.bridgeId == null && bridgeData.ipAddress == "")
       || (bridgeData.bridgeId == "" && bridgeData.ipAddress == null) || (bridgeData.bridgeId == "" && bridgeData.ipAddress == "")) {
@@ -35,8 +44,8 @@ export class CrownstoneHue {
       ipAddress: bridgeData.ipAddress,
       bridgeId: bridgeData.bridgeId
     });
-    await bridge.init();
     this.bridges.push(bridge);
+    await bridge.init();
     return bridge;
   }
 
@@ -50,45 +59,13 @@ export class CrownstoneHue {
     }
   }
 
-  /**
-   * Adds a light to the bridge.
-   *
-   * @remarks
-   * id refers to the id of the light on the bridge and NOT the uniqueId of a light.
-   * Gets info of the light from Bridge and creates a Light object and pushes it to the list.
-   *
-   *
-   * @param bridgeId - The id of the bridge of which the light have to be added to.
-   * @param idOnBridge - The id of the light on the bridge.
-   */
-  async addLight(data: LightInitFormat | Light): Promise<Light> {
-    for (const bridge of this.bridges) {
-      if (bridge.bridgeId === data.bridgeId) {
-        const light = await bridge.configureLight(data);
-        if (light == undefined) {
-          throw new CrownstoneHueError(412, data.uniqueId)
-        }
-        return light;
-      }
-    }
-  }
-
-  removeLight(lightId: string): void {
-    for (const bridge of this.bridges) {
-      const light = bridge.lights[lightId];
-      if (light !== undefined) {
-        bridge.removeLight(lightId);
-      }
-    }
-  }
-
   /** Returns a map of all connected lights by uniqueId
 
    */
   getAllConnectedLights(): { [uniqueId: string]: Light } {
     let lights = {}
-    for(const bridge of this.bridges){
-      lights = {...lights,...bridge.getConnectedLights()}
+    for (const bridge of this.bridges) {
+      lights = {...lights, ...bridge.getLights()}
     }
     return lights;
   }
@@ -102,5 +79,6 @@ export class CrownstoneHue {
     for (const bridge of this.bridges) {
       bridge.stopPolling()
     }
+    eventBus.reset()
   }
 }

@@ -5,6 +5,7 @@
  - [Discovery](/documentation/Discovery.md)
  - [Bridge](/documentation/Bridge.md)
  - [Light](/documentation/Light.md)
+ - [Behaviour Wrapper](/documentation/BehaviourWrapper.md)
  - [Errors](/documentation/Errors.md)
  - **Event calls** 
 
@@ -28,11 +29,22 @@ bridgeId: string,
 lights: {name: string, id: number, uniqueId: string}[]
 }
 ```  
-### ON_LIGHT_REACHABILITY_CHANGE
-When a light's reachability is changed, it emits an event call with the topic ```"onLightReachabilitychange"``` and a data object as ```{uniqueId:string,reachable:boolean}```.
+### LIGHT_STATE_CHANGE
+When a light's state is changed, it emits an event call with the topic ``"onLightStateChange"`` with `data` as a stringified `HueFullState` object.
+
+### LIGHT_NAME_CHANGE
+When a light's name is changed, it emits an event call with the topic `"onLightNameChange"` with `data` as a stringified object as `{uniqueId: string, name: string}`.
 
 ### ON_BRIDGE_CONNECTION_REESTABLISHED
-A Bridge object throws this error once when it has reconnected to the Philips Hue Bridge. Topic `onBridgeConnectionReestablished` with `data` the bridge's `bridgeId`
+A Bridge object emits this event once when it has reconnected to the Philips Hue Bridge. Topic `onBridgeConnectionReestablished` with `data` the bridge's `bridgeId`.
 
 ### ON_BRIDGE_CONNECTION_LOST
-A Bridge object throws this error once, when it has lost conenction to the Philips Hue Bridge. Topic `onBridgeConnectionLost` with `data` the bridge's `bridgeId`
+A Bridge object emits this event once, when it has lost connection to the Philips Hue Bridge. Topic `onBridgeConnectionLost` with `data` the bridge's `bridgeId`.
+
+### ON_BRIDGE_INFO_UPDATE
+A Bridge object emits this event when it has new bridge information after an update. Topic `onBridgeUpdate` with `data` as a stringified data object:`.
+
+### NEW_LIGHT_ON_BRIDGE
+A Bridge object emits this event when a new light is found on the Philips Hue Bridge. Topic `newLightOnBridge` with `data` as a stringified data object:`{uniqueId:string,id:number,name:string,bridgeId:string}`.
+
+ 

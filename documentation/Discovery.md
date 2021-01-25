@@ -6,7 +6,9 @@
 - **Discovery** 
 	- [Discover all bridges in the network](#discover-all-bridges-in-the-network) 
 	- [Discovering a bridge by Id](#discovering-a-bridge-by-id)
+- [Bridge](/documentation/Bridge.md)
 - [Light](/documentation/Light.md)
+- [Behaviour Wrapper](/documentation/BehaviourWrapper.md)
 - [Errors](/documentation/Errors.md)
 - [Event calls](/documentation/EventCalls.md)  
 

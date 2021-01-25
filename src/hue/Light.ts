@@ -231,9 +231,9 @@ export class Light {
 
     if (!isEqual) {
       if (this._retrievedStateIsGivenStateCheck(newState)) {
-        return;
+        return;   
       }
-      this._updateState(newState);
+      this._updateState(newState); //Emits event with currentstate after update.
       this._onUnEqualState()
     }
     else if (isEqual && this._currentLightState.reachable === newState.reachable) {

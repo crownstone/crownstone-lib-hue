@@ -6,7 +6,6 @@ import {CrownstoneHue, CrownstoneHueError, Discovery, eventBus} from "../src";
 import {v3} from "node-hue-api"
 import {Bridge} from "../src";
 import {fakeCreateLocal, fakeLightsOnBridge} from "./helpers/mockHueApi";
-import {NEW_LIGHT_ON_BRIDGE, ON_BRIDGE_PERSISTENCE_UPDATE} from "../src/constants/EventConstants";
 const flushPromises = () => new Promise(setImmediate);
 
 afterEach(() => {
@@ -40,7 +39,7 @@ describe("Bridge", () => {
       bridgeId: ""
     })
     await bridge.init();
-    await bridge.link();
+    await bridge.link("crownstone-lib-hue","testSuite");
     bridge.stopPolling();
     return expect(bridge.name).toBe("Philips Hue Fake Bridge");
   })

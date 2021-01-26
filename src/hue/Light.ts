@@ -4,7 +4,6 @@ import {eventBus} from "../util/EventBus";
 import {LIGHT_NAME_CHANGE, LIGHT_STATE_CHANGE} from "../constants/EventConstants";
 import {CrownstoneHueError} from "..";
 import {HUE_DEFAULT_TRANSITION_TIME, hueStateVariables} from "../constants/HueConstants";
-import exp from "constants";
 
 
 /**

@@ -13,7 +13,9 @@ export const ERROR_CODES = {
     423: "Cannot manipulate light when light is off.",
     424: "Something went wrong with an action call to the Philips Hue Bridge, see description for more information.",
     425: "Given light type is not supported.",
-    426: "Api call is missing extra parameters.",
+    426: "Extra parameters are missing or not supported, please check your parameters with the given ApiCall.",
+    427: "Given device name is too long, make sure it is between 0 and 19 characters.",
+    428: "Given app name is too long, make sure it is between 0 and 20 characters.",
     888: "Unknown action call to Hue Api.",
     999: "Unknown Error, see description."
 }

@@ -70,11 +70,11 @@ If no username is present, an unauthenticated api created.
 On success `bridge.reachable` is set to `true` and it's ready for linking.
 
 #### Linking
-Upon initialization with an empty username, `await bridge.link()` has to be called.
+Upon initialization with an empty username, `await bridge.link(appName,deviceName)` has to be called.
 Before doing so, the user must press the physical button on the Philips Hue bridge, else an error will be thrown.
 
-After an unauthenticated api is created and the linking process is started, `_createUser()` is called.
-This attempts to create a user on the physical Philips Hue Bridge with the identifiers set by `APP_NAME` and `DEVICE_NAME` in the [HueConstants.ts](/src/constants/HueConstants.ts). 
+This attempts to create a user on the physical Philips Hue Bridge, with an identifier set by the combination of `appName` and `deviceName`. 
+The ``appName`` variable allows a string from 0 to 20 characters and `deviceName` allows a string from 0 to 19 characters. These variables are used as identification for the username on the Philips Hue Bridge's whitelist.
 
 On success, a user is created on the Philips Hue Bridge and the bridge will update itself with the new `username` and `clientkey`.
 

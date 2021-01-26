@@ -56,7 +56,7 @@ await crownstoneHue.addBridge(bridges[0]);
 This returns a Bridge object.
 To link the bridge, call:
 ```
-bridge.link();  
+bridge.link(appName,deviceName);  
 ``` 
 
 The user should press the physical link button on the Philips Hue Bridge before linking.
@@ -75,6 +75,7 @@ All together:
 const crownstoneHue = new CrownstoneHue()   
 const bridges = await Discovery.discoverBridges();
 const bridge = await crownstoneHue.addBridge(bridges[0]); 
+bridge.link("exampleApp","exampleDevice");  
 const lights = await bridge.getLights(); 
 ```
 

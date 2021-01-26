@@ -1,7 +1,7 @@
 import {Light} from "./Light"
 import {v3} from "node-hue-api";
 import {CrownstoneHueError} from "..";
-import {APP_NAME, DEVICE_NAME, BRIDGE_POLLING_RATE, RECONNECTION_TIMEOUT_TIME} from "../constants/HueConstants"  //Device naming for on the Hue Bridge.
+import {APP_NAME, BRIDGE_POLLING_RATE, RECONNECTION_TIMEOUT_TIME} from "../constants/HueConstants"  //Device naming for on the Hue Bridge.
 import {Discovery} from "./Discovery";
 import {GenericUtil} from "../util/GenericUtil";
 import Api from "node-hue-api/lib/api/Api"; // library import only used for types
@@ -12,6 +12,7 @@ import {
   ON_BRIDGE_CONNECTION_REESTABLISHED, ON_BRIDGE_INFO_UPDATE
 } from "../constants/EventConstants";
 import Timeout = NodeJS.Timeout;
+import {type} from "os";
 
 const hueApi = v3.api;
 
@@ -88,13 +89,19 @@ export class Bridge {
     }
   }
 
-  async link(): Promise<void> {
+  async link(appName:string = "",deviceName:string = ""): Promise<void> {
     if (this.reachable) {
       if (this.initialized) {
         return;
       }
+      if(appName === undefined || appName.length > 20){
+        throw new CrownstoneHueError(428)
+      }
+      if(deviceName === undefined || deviceName.length >= 20){
+        throw new CrownstoneHueError(427)
+      }
       if (this.username == null) {
-        await this._link();
+        await this._link(appName,deviceName);
       }
     }
   }
@@ -114,8 +121,8 @@ export class Bridge {
    * Throws error from createNewUser() when link button is not pressed before linking.
    *
    */
-  async _link(): Promise<void> {
-    await this._createUser()
+  async _link(appName:string,deviceName:string): Promise<void> {
+    await this._createUser(appName,deviceName)
     await this._connect();
   }
 
@@ -222,11 +229,11 @@ export class Bridge {
    * Throws error if link button is not pressed
    *
    */
-  async _createUser(): Promise<void> {
+  async _createUser(appName:string,deviceName:string): Promise<void> {
     if (!this.reachable) {
       return;
     }
-    let createdUser = await this._retryApiCallUntilDeliver("createUser");
+    let createdUser = await this._retryApiCallUntilDeliver("createUser",[appName,deviceName]);
     if (!createdUser) {
       throw new CrownstoneHueError(424, "Obtaining bridge configuration gone wrong.")
     }
@@ -257,7 +264,7 @@ export class Bridge {
     });
   }
 
-  async _retryApiCallUntilDeliver(action: ApiAction, extra?: number | [] | StateUpdate) {
+  async _retryApiCallUntilDeliver(action: ApiAction, extra?: number | string[] | [] | StateUpdate) {
     let result = null;
     while (true) {
       if (!!extra) {
@@ -278,14 +285,14 @@ export class Bridge {
 
   /** Extra layer for error handling, in case bridge fails or is turned off.
    */
-  async _useApi(action: ApiAction, extra?: number | [] | StateUpdate) {
+  async _useApi(action: ApiAction, extra?: number | string[] | [] | StateUpdate) {
     if (!exemptOfAuthentication[action]) {
       this._checkAuthentication()
     }
     if (this.reconnecting && !neededForReconnection[action]) {
       return {hadConnectionFailure: true};
     }
-    if(this._isActionMissingParameters(action,extra)){
+    if(!this._isExtraParameterValid(action,extra)){
       throw new CrownstoneHueError(426,action);
     }
     try {
@@ -293,7 +300,7 @@ export class Bridge {
         case "getAllLights":
           return await this.api.lights.getAll();
         case "createUser":
-          return await this.api.users.createUser(APP_NAME, DEVICE_NAME);
+            return await this.api.users.createUser(extra[0], extra[1]);
         case "getBridgeConfiguration":
           return await this.api.configuration.getConfiguration();
         case "getLightById":
@@ -327,17 +334,34 @@ export class Bridge {
     }
   }
 
-  _isActionMissingParameters(action,extra?):boolean {
+  _isExtraParameterValid(action:string,extra?):boolean {
     switch (action) {
+      case "createUser":
+        if(extra instanceof Array && typeof(extra[0]) === "string" && typeof(extra[1]) === "string") {
+          return true;
+        } else{
+          return false;
+        }
       case "getLightById":
-        return !extra;
+        if(!!extra && typeof(extra) === "number") {
+          return true;
+        } else{
+          return false;
+        }
       case "setLightState":
-        return (!extra || !extra[0] || !extra[1]);
+        if(extra instanceof Array && typeof(extra[0]) === "number" && typeof(extra[1]) === "object"){
+          return true;
+        } else {
+          return false;
+        }
       case "getLightState":
-        return !extra;
-
+        if(typeof(extra) === "number"){
+          return true;
+        } else {
+          return false;
+        }
       default:
-        return false;
+        return true;
     }
   }
 

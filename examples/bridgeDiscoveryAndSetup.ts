@@ -13,7 +13,7 @@ async function setupNewBridge(): Promise<void> {
       const bridge = await crownstoneHue.addBridge(bridgesInNetwork[0]) //Assuming there is only one bridge in the network.
       // Make sure the link button is pressed, else it will throw an error.
       console.log("Attempting to link bridge...")
-      await bridge.link()
+      await bridge.link("crownstone-lib-hue","ExampleCode")
       console.log("Bridge is linked and ready to use.")
       console.log(bridge.getInfo())
     }

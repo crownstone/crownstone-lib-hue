@@ -35,6 +35,8 @@ See below for the codes with some extra description for possible reasons.
 - 424: "Something went wrong with an action call to the Philips Hue Bridge, see description for more information."
 - 425: "Given light type is not supported."
 - 426: "Api call is missing extra parameters."
+- 427: "Given device name is too long, make sure it is between 0 and 19 characters."
+- 428: "Given app name is too long, make sure it is between 0 and 20 characters."
 - 888: "Unknown action call to Hue Api." - Will be thrown if bridge use api method receives an unknown action string
 - 999: "Unknown Error, see description." - This one will most likely be thrown if an error from the external library is not specifically converted and/or something unexpected happened.
 

@@ -1,6 +1,6 @@
 
-export const APP_NAME: string = 'Hub';
-export const DEVICE_NAME: string = 'Hub1';
+export const APP_NAME: string = 'crownstone-lib-hue';
+// export const DEVICE_NAME: string = '';
 
 export const maxValueOfStates = {
   'hue': 65535,
